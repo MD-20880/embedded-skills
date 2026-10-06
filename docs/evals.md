@@ -99,5 +99,6 @@ claude plugin eval . --scaffold --allow-tools Write "Bash(python3 *)" "Bash(git 
 | emb-project | `issue-tracking/close-check-checklist-done` | 1.00（3 次） |
 | emb-project | `issue-tracking/gate-review-dvt` | 1.00（3 次） |
 | emb-project | `issue-tracking/no-trigger-driver-code` | 1.00（3 次） |
+| emb-project | `issue-tracking/triage-symptom-vs-risk` | 1.00（1 次） |
 | emb-design | `adr-write/supersede-needs-confirm` | 1.00（1 次） |
 | emb-design | `adr-write/no-trigger` | 1.00（1 次） |

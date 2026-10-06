@@ -1,13 +1,14 @@
 name: 缺陷
-description: 已确认的错误：现象和期望都明确（原因不明时请先开“问题”查根因）
+description: 看到了现象，或按资料能确定是错的，原因不知道也可以开。只是担心有风险、没看到现象的，请开“验证”或“问题”
 labels:
 - defect
+- defect:tbd
 body:
 - type: input
   id: target
   attributes:
     label: 适用对象
-    description: 板名与硬件版本、固件版本、配置或装配差异
+    description: 板名、硬件版本、板号、固件版本、配置
   validations:
     required: true
 - type: input
@@ -19,7 +20,7 @@ body:
   id: gate
   attributes:
     label: 截止节点
-    description: 必须在哪个阶段或节点之前完成，如 EVT、DVT 改板冻结前、PVT、MP
+    description: 必须在哪个阶段或节点之前完成；硬件缺陷写计划修复它的那一版的改板冻结点
   validations:
     required: true
 - type: input
@@ -31,49 +32,62 @@ body:
   id: repro
   attributes:
     label: 现象与复现
-    value: '- 步骤：
-
-      - 环境：
-
-      - 复现率：
-
-      '
+    value: |
+      - 步骤：
+      - 环境（板、板号、固件版本和提交号、配置）：
+      - 复现率（只出现过一次写 1/N）：
+      - 日志、波形或照片：
+      - 范围（仅硬件）：设计缺陷 / 个体缺陷
   validations:
     required: true
 - type: textarea
   id: expected
   attributes:
     label: 期望
-    description: 正确的行为是什么，依据是什么
+    description: 正确的行为是什么；依据：规格、器件手册、需求、协议或接口文档
   validations:
     required: true
 - type: textarea
   id: impact
   attributes:
     label: 影响
-    description: 影响哪些对象、多严重、是否阻塞某个阶段、有无临时规避
-- type: textarea
-  id: cause
+    description: 影响哪些对象、多严重、是否阻塞某个阶段；有临时规避时写在这里
+- type: dropdown
+  id: ownership
   attributes:
-    label: 根因
-    description: 硬件 / 固件 / 结构 / 工艺 / 器件 / 规格本身；未确认写“待查”
+    label: 归属
+    description: 不知道就选“待查”。选了硬件或软件，请把标签 defect:tbd 换成 defect:hw 或 defect:sw
+    options:
+    - 待查
+    - 硬件
+    - 软件
+    default: 0
+- type: textarea
+  id: locate
+  attributes:
+    label: 定位（由负责人填写）
+    description: 根因确认之前不选处置方式
+    value: |
+      - 负责人：
+      - 根因（未确认时写“待查：”和怀疑的方向）：
+      - 证据等级：
 - type: textarea
   id: versions
   attributes:
     label: 影响版本
-    value: '- 硬件：
-
-      - 固件：
-
-      '
+    value: |
+      - 硬件（硬件版本、受影响的板号）：
+      - 固件（固件版本范围）：
 - type: textarea
   id: disposition
   attributes:
-    label: 处置（关闭前填写）
-    value: '- 处置方式：固件修复 / 改板修复 / 软件规避 / 接受限制
-
+    label: 处置（定位后填写）
+    description: 硬件缺陷：改板修复 / 软件规避 / 接受限制；软件缺陷：固件修复 / 软件规避 / 接受限制。删掉不适用的行
+    value: |
+      - 处置方式：
       - 目标版本：
-
       - 复测（对象、结果、证据等级、链接）：
-
-      '
+      - 现有样板（仅硬件）：返修 / 飞线 / 停用 / 照用并注明
+      - 原理图和 BOM 的更正（仅硬件）：
+      - 修复的提交或 PR（仅软件）：
+      - 回归测试（仅软件）：
