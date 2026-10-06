@@ -1,0 +1,45 @@
+{
+  "name": "embedded-skills",
+  "description": "嵌入式软件工程 skills 集合 / Skills for embedded software engineering",
+  "owner": {
+    "name": "MD-20880"
+  },
+  "plugins": [
+    {
+      "name": "emb-design",
+      "source": "./plugins/emb-design",
+      "description": "嵌入式方案设计：需求拆解、方案对比与选型、资源预算、架构决策记录（ADR）。Embedded solution design: requirements, trade-off analysis, resource budgets, ADRs.",
+      "category": "embedded"
+    },
+    {
+      "name": "emb-drivers",
+      "source": "./plugins/emb-drivers",
+      "description": "外设驱动开发：从芯片手册提取寄存器与时序、编写与移植 I2C/SPI/UART 等外设驱动。Peripheral driver development from datasheets, porting across MCUs.",
+      "category": "embedded"
+    },
+    {
+      "name": "emb-bringup",
+      "source": "./plugins/emb-bringup",
+      "description": "板级 bring-up 与验证：上电检查、验证程序、软硬件问题定位、验证记录归档。Board bring-up, validation programs, HW/SW triage, validation records.",
+      "category": "embedded"
+    },
+    {
+      "name": "emb-review",
+      "source": "./plugins/emb-review",
+      "description": "嵌入式代码审查：中断与并发、内存与栈、时序、可移植性等专项审查。Embedded code review: ISR/concurrency, memory/stack, timing, portability.",
+      "category": "embedded"
+    },
+    {
+      "name": "emb-docs",
+      "source": "./plugins/emb-docs",
+      "description": "协议与设计文档：协议规范、测试向量、规范与实现一致性检查、交付文档。Protocol specs, test vectors, spec/implementation consistency, delivery docs.",
+      "category": "embedded"
+    },
+    {
+      "name": "emb-repo",
+      "source": "./plugins/emb-repo",
+      "description": "项目 Repo 管理：项目画像、目录与构建约定、文档索引同步、版本发布记录。Embedded repo management: project profile, layout/build conventions, docs index, releases.",
+      "category": "embedded"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "name": "emb-drivers",
+  "displayName": "Embedded Drivers",
+  "version": "0.1.0",
+  "description": "外设驱动开发：从芯片手册提取寄存器与时序、编写与移植 I2C/SPI/UART 等外设驱动。Peripheral driver development from datasheets, porting across MCUs.",
+  "author": {
+    "name": "MD-20880"
+  },
+  "repository": "https://github.com/MD-20880/embedded-skills",
+  "keywords": [
+    "embedded",
+    "driver",
+    "datasheet",
+    "i2c",
+    "spi",
+    "uart",
+    "porting"
+  ],
+  "dependencies": [
+    "emb-repo"
+  ]
+}

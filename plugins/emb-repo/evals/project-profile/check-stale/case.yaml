@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: check-stale
+description: 画像引用了已删除的 preset 与路径；check 模式应报告过期项且不修改文件。
+tags: [project-profile, positive, scaffold]
+context:
+  scaffold_script: setup.sh

@@ -1,0 +1,54 @@
+name: Evals
+
+# 评测会调用模型并产生费用，因此只手动触发。
+# 需要在仓库 Settings → Secrets 中配置 ANTHROPIC_API_KEY。
+on:
+  workflow_dispatch:
+    inputs:
+      plugin:
+        description: "要评测的插件目录名，如 emb-repo"
+        required: true
+        default: emb-repo
+      case:
+        description: "只运行匹配的用例（glob，可留空表示全部）"
+        required: false
+        default: ""
+      runs:
+        description: "每个用例运行次数"
+        required: false
+        default: "3"
+      max_cost_usd:
+        description: "本次运行费用上限（美元）"
+        required: false
+        default: "10"
+
+permissions:
+  contents: read
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: 安装 Claude Code 与沙箱依赖
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          sudo apt-get update && sudo apt-get install -y bubblewrap socat
+      - name: Run evals
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        working-directory: plugins/${{ inputs.plugin }}
+        run: |
+          args=(--trust-plugin --no-publish --json results.json --runs "${{ inputs.runs }}"
+                --max-cost-usd "${{ inputs.max_cost_usd }}" --threshold 0.8 --scaffold
+                --allow-tools Write "Bash(python3 *)" "Bash(git *)")
+          if [ -n "${{ inputs.case }}" ]; then args+=(--case "${{ inputs.case }}"); fi
+          claude plugin eval . "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-results-${{ inputs.plugin }}
+          path: plugins/${{ inputs.plugin }}/results.json

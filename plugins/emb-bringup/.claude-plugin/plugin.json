@@ -1,0 +1,20 @@
+{
+  "name": "emb-bringup",
+  "displayName": "Embedded Bring-up",
+  "version": "0.1.0",
+  "description": "板级 bring-up 与验证：上电检查、验证程序、软硬件问题定位、验证记录归档。Board bring-up, validation programs, HW/SW triage, validation records.",
+  "author": {
+    "name": "MD-20880"
+  },
+  "repository": "https://github.com/MD-20880/embedded-skills",
+  "keywords": [
+    "embedded",
+    "bringup",
+    "validation",
+    "hardware",
+    "debug"
+  ],
+  "dependencies": [
+    "emb-repo"
+  ]
+}

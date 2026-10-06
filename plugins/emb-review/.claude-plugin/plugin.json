@@ -1,0 +1,21 @@
+{
+  "name": "emb-review",
+  "displayName": "Embedded Review",
+  "version": "0.1.0",
+  "description": "嵌入式代码审查：中断与并发、内存与栈、时序、可移植性等专项审查。Embedded code review: ISR/concurrency, memory/stack, timing, portability.",
+  "author": {
+    "name": "MD-20880"
+  },
+  "repository": "https://github.com/MD-20880/embedded-skills",
+  "keywords": [
+    "embedded",
+    "review",
+    "isr",
+    "concurrency",
+    "memory",
+    "misra"
+  ],
+  "dependencies": [
+    "emb-repo"
+  ]
+}

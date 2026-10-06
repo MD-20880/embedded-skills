@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: init-multi-board
+description: 在一个含两块板、CMake preset、链接脚本且 README 与链接脚本存在 RAM 冲突的固件仓库中建立项目画像。
+tags: [project-profile, positive, scaffold]
+context:
+  scaffold_script: setup.sh

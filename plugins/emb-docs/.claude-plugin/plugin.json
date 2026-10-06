@@ -1,0 +1,20 @@
+{
+  "name": "emb-docs",
+  "displayName": "Embedded Docs",
+  "version": "0.1.0",
+  "description": "协议与设计文档：协议规范、测试向量、规范与实现一致性检查、交付文档。Protocol specs, test vectors, spec/implementation consistency, delivery docs.",
+  "author": {
+    "name": "MD-20880"
+  },
+  "repository": "https://github.com/MD-20880/embedded-skills",
+  "keywords": [
+    "embedded",
+    "protocol",
+    "spec",
+    "documentation",
+    "test-vectors"
+  ],
+  "dependencies": [
+    "emb-repo"
+  ]
+}

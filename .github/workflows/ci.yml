@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: 仓库规范（lint_skills.py）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r tools/requirements.txt
+      - name: Lint
+        run: python3 tools/lint_skills.py
+      - name: 检查改动过的插件是否升级了版本
+        if: github.event_name == 'pull_request'
+        run: python3 tools/lint_skills.py --changed-since "origin/${{ github.base_ref }}"
+      - name: 扫描脚本自测
+        run: |
+          python3 -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . > /dev/null
+          python3 -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . --json > /dev/null
+
+  validate:
+    name: 官方校验（claude plugin validate）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install -g @anthropic-ai/claude-code
+      - name: Validate marketplace
+        run: claude plugin validate . --strict
+      - name: Validate each plugin
+        run: |
+          for p in plugins/*/; do
+            echo "::group::$p"
+            claude plugin validate "$p" --strict
+            echo "::endgroup::"
+          done

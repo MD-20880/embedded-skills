@@ -1,0 +1,18 @@
+{
+  "name": "emb-repo",
+  "displayName": "Embedded Repo",
+  "version": "0.1.0",
+  "description": "项目 Repo 管理：项目画像、目录与构建约定、文档索引同步、版本发布记录。Embedded repo management: project profile, layout/build conventions, docs index, releases.",
+  "author": {
+    "name": "MD-20880"
+  },
+  "repository": "https://github.com/MD-20880/embedded-skills",
+  "keywords": [
+    "embedded",
+    "repo",
+    "profile",
+    "cmake",
+    "release",
+    "documentation"
+  ]
+}
