@@ -1,7 +1,7 @@
 {
   "name": "emb-design",
   "displayName": "Embedded Design",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "嵌入式方案设计：需求拆解、方案对比与选型、资源预算、架构决策记录（ADR）。Embedded solution design: requirements, trade-off analysis, resource budgets, ADRs.",
   "author": {
     "name": "MD-20880"
