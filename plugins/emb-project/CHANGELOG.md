@@ -19,6 +19,8 @@
 
 - 评测用例 `triage-symptom-vs-risk`：看到现象但原因不明的开成待定位缺陷，只是担心的风险开成验证。
 
+本版本评测（各 1 次，`--ablation none`）：`close-check-checklist-done`、`gate-review-dvt`、`no-trigger-driver-code`、`triage-symptom-vs-risk` 均为 1.00。
+
 ## [0.1.0] - 2026-10-06
 
 ### 新增
