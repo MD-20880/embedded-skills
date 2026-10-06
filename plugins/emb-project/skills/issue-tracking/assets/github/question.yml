@@ -1,5 +1,5 @@
 name: 问题
-description: 结论未知、会影响后续决定：选型、方案取舍、门槛定多少、根因是什么
+description: 结论未知、会影响后续决定：选型、方案取舍、门槛定多少、不确定算不算错
 labels:
 - question
 body:

@@ -1,7 +1,7 @@
 {
   "name": "emb-project",
   "displayName": "Embedded Project",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "嵌入式产品开发的项目管理：issue（问题、验证、缺陷、任务）、验证矩阵、总览与 EVT/DVT/PVT/MP 阶段门禁。Project management for embedded product development: issues, verification matrices, overviews and stage gates.",
   "author": {
     "name": "MD-20880"
