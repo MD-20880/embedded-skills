@@ -48,7 +48,7 @@ skill 提供 7 个工作流：新建、改写或迁移、判断能否关闭、�
 | --- | --- |
 | 验证项的判据、判定与关闭（“过没过”） | `emb-project:issue-tracking` |
 | 上板验证的过程记录（怎么测的、波形、日志） | `emb-bringup:validation-record`（规划中），记录链接到对应的验证 issue 作为证据 |
-| 技术方案的取舍与决策记录 | `emb-design:adr-write`（规划中）；对应的“问题”issue 以 ADR 作为答案 |
+| 技术方案的取舍与决策记录 | `emb-design:adr-write`；对应的“问题”issue 以 ADR 作为答案，问题 issue 的“决策记录”链接 ADR |
 
 ## 依赖的项目画像章节
 

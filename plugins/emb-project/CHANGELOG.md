@@ -17,6 +17,7 @@
 
 ### 新增
 
+- README 分工表：ADR 交给已发布的 `emb-design:adr-write`，问题 issue 的“决策记录”链接 ADR。
 - 评测用例 `triage-symptom-vs-risk`：看到现象但原因不明的开成待定位缺陷，只是担心的风险开成验证。
 
 本版本评测（各 1 次，`--ablation none`）：`close-check-checklist-done`、`gate-review-dvt`、`no-trigger-driver-code`、`triage-symptom-vs-risk` 均为 1.00。
