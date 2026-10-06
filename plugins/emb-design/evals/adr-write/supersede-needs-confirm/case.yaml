@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: supersede-needs-confirm
+description: 已有 ADR 2 被新决定推翻，用户要求“直接写”；应起草取代 ADR 2 的草稿并等待确认，不写任何文件。
+tags: [adr-write, positive, scaffold]
+context:
+  scaffold_script: setup.sh
