@@ -13,8 +13,5 @@
     "spec",
     "documentation",
     "test-vectors"
-  ],
-  "dependencies": [
-    "emb-repo"
   ]
 }

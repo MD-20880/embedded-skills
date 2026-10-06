@@ -16,7 +16,7 @@
 | bringup-checklist | `/emb-bringup:bringup-checklist` | 📝 规划中 | 按电源→时钟→调试口→外设的顺序生成上电检查清单 |
 | validation-program | `/emb-bringup:validation-program` | 📝 规划中 | 为某块板编写外设验证程序与通过判据 |
 | hw-sw-triage | `/emb-bringup:hw-sw-triage` | 📝 规划中 | 软硬件问题定位：现象→假设→测量（示波器 / 逻辑分析仪）→结论 |
-| validation-record | `/emb-bringup:validation-record` | 📝 规划中 | 按项目约定写验证 / 排查记录，并把结论回写到板的 README |
+| validation-record | `/emb-bringup:validation-record` | 📝 规划中 | 按项目约定写验证 / 排查记录，把结论回写到板的 README，并作为证据链接到 `emb-project` 中对应的验证 issue |
 
 > 状态说明：✅ 已发布（含评测用例）；📝 规划中（名称与范围可能调整）。新增 skill 的流程见仓库根目录 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
 

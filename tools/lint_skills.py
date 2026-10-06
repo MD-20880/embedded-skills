@@ -2,7 +2,8 @@
 """Repository linter for embedded-skills.
 
 Checks the marketplace catalog, every plugin manifest, every skill and its eval
-cases, and all relative Markdown links. Complements `claude plugin validate`,
+cases, and all relative Markdown links. A skill may ship scripts/selfcheck.py for
+skill-specific checks; it is run here and must exit 0. Complements `claude plugin validate`,
 which checks the Claude Code schema; this script checks this repository's own
 conventions (see docs/authoring-guide.md).
 
@@ -111,6 +112,8 @@ def lint_marketplace(r):
             r.error(where, "版本号只写在插件的 plugin.json，市场条目中不要写 version")
         if not entry.get("description"):
             r.error(where, "缺少 description")
+        if name != "emb-repo" and "emb-repo" not in (entry.get("dependencies") or []):
+            r.error(where, "领域插件须在条目中声明 \"dependencies\": [\"emb-repo\"]（项目画像能力）")
     plugins_dir = os.path.join(ROOT, "plugins")
     on_disk = {d for d in os.listdir(plugins_dir) if os.path.isdir(os.path.join(plugins_dir, d))}
     for d in sorted(on_disk - listed):
@@ -138,6 +141,9 @@ def lint_plugin(r, name):
         r.error(where, f"version `{version}` 不是语义化版本 MAJOR.MINOR.PATCH")
     if not manifest.get("description"):
         r.error(where, "缺少 description")
+    if "dependencies" in manifest:
+        r.error(where, "依赖写在 marketplace.json 的插件条目中，不写在 plugin.json："
+                       "plugin.json 中的依赖会让 claude plugin eval 按路径评测时无法加载本插件")
     if not (manifest.get("author") or {}).get("name"):
         r.error(where, "缺少 author.name")
     if os.path.isdir(os.path.join(root, "bin")):
@@ -209,6 +215,12 @@ def lint_skill(r, plugin, plugin_root, skill, readme_text):
                 compile(read(path), path, "exec")
             except SyntaxError as exc:
                 r.error(rel(path), f"Python 语法错误（第 {exc.lineno} 行）：{exc.msg}")
+    selfcheck = os.path.join(sdir, "scripts", "selfcheck.py")
+    if os.path.exists(selfcheck):
+        res = subprocess.run([sys.executable, selfcheck], cwd=sdir, capture_output=True, text=True)
+        if res.returncode != 0:
+            detail = "; ".join(l for l in res.stdout.splitlines() if l.startswith("FAIL")) or res.stderr.strip()
+            r.error(rel(selfcheck), f"skill 自检未通过：{detail}")
     if skill != "project-profile" and "embedded-profile.md" not in body:
         r.warn(where, "未读取项目画像 `docs/embedded-profile.md`；需要项目事实的 skill 应按 profile-spec 第 6 节读取")
     if f"skills/{skill}/SKILL.md" not in readme_text:

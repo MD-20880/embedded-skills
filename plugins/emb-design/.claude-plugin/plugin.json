@@ -13,8 +13,5 @@
     "architecture",
     "adr",
     "selection"
-  ],
-  "dependencies": [
-    "emb-repo"
   ]
 }

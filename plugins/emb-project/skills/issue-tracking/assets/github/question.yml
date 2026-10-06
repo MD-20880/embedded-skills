@@ -1,0 +1,81 @@
+name: 问题
+description: 结论未知、会影响后续决定：选型、方案取舍、门槛定多少、根因是什么
+labels:
+- question
+body:
+- type: markdown
+  attributes:
+    value: 标题写成：[话题] 是非类用“对象 + 是否 + 期望状态或决定”；选择、数值、原因类用“哪个 / 多少 / 什么”；不加问号。一个 issue 只问一件事。
+- type: input
+  id: target
+  attributes:
+    label: 适用对象
+    description: 板名与硬件版本、固件版本、配置或装配差异
+  validations:
+    required: true
+- type: input
+  id: domain
+  attributes:
+    label: 领域
+    description: 硬件 / 固件 / 结构 / 射频 / 工艺 / 供应商 / 认证……
+- type: input
+  id: gate
+  attributes:
+    label: 截止节点
+    description: 必须在哪个阶段或节点之前完成，如 EVT、DVT 改板冻结前、PVT、MP
+  validations:
+    required: true
+- type: input
+  id: owner
+  attributes:
+    label: 决策人
+    description: 不知道就写“待定，由谁定”
+- type: textarea
+  id: why
+  attributes:
+    label: 为什么问
+    description: 答案影响哪个决定？不回答会卡住什么？
+  validations:
+    required: true
+- type: textarea
+  id: criteria
+  attributes:
+    label: 判据
+    description: 怎样算答完。未知的写“待定，由谁在何时定”
+    value: '- 比较维度与门槛：
+
+      - 方法：
+
+      '
+  validations:
+    required: true
+- type: textarea
+  id: deps
+  attributes:
+    label: 依赖
+    value: '- 阻塞于：无
+
+      - 阻塞了：无
+
+      '
+- type: textarea
+  id: means
+  attributes:
+    label: 手段（可选，不作为关闭条件）
+- type: textarea
+  id: answer
+  attributes:
+    label: 答案（关闭前填写）
+    value: '- 结论：
+
+      - 依据与证据（含证据等级）：
+
+      - 适用对象：
+
+      - 剩余限制：
+
+      - 引出的 issue：
+
+      - 决策记录：
+
+      '

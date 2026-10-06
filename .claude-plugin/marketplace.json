@@ -9,31 +9,55 @@
       "name": "emb-design",
       "source": "./plugins/emb-design",
       "description": "嵌入式方案设计：需求拆解、方案对比与选型、资源预算、架构决策记录（ADR）。Embedded solution design: requirements, trade-off analysis, resource budgets, ADRs.",
-      "category": "embedded"
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
     },
     {
       "name": "emb-drivers",
       "source": "./plugins/emb-drivers",
       "description": "外设驱动开发：从芯片手册提取寄存器与时序、编写与移植 I2C/SPI/UART 等外设驱动。Peripheral driver development from datasheets, porting across MCUs.",
-      "category": "embedded"
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
     },
     {
       "name": "emb-bringup",
       "source": "./plugins/emb-bringup",
       "description": "板级 bring-up 与验证：上电检查、验证程序、软硬件问题定位、验证记录归档。Board bring-up, validation programs, HW/SW triage, validation records.",
-      "category": "embedded"
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
     },
     {
       "name": "emb-review",
       "source": "./plugins/emb-review",
       "description": "嵌入式代码审查：中断与并发、内存与栈、时序、可移植性等专项审查。Embedded code review: ISR/concurrency, memory/stack, timing, portability.",
-      "category": "embedded"
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
     },
     {
       "name": "emb-docs",
       "source": "./plugins/emb-docs",
       "description": "协议与设计文档：协议规范、测试向量、规范与实现一致性检查、交付文档。Protocol specs, test vectors, spec/implementation consistency, delivery docs.",
-      "category": "embedded"
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
+    },
+    {
+      "name": "emb-project",
+      "source": "./plugins/emb-project",
+      "description": "嵌入式产品开发的项目管理：issue（问题、验证、缺陷、任务）、验证矩阵、总览与 EVT/DVT/PVT/MP 阶段门禁。Project management for embedded product development: issues, verification matrices, overviews and stage gates.",
+      "category": "embedded",
+      "dependencies": [
+        "emb-repo"
+      ]
     },
     {
       "name": "emb-repo",

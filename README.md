@@ -1,6 +1,6 @@
 # embedded-skills
 
-面向**嵌入式软件工程**的 Claude Code skills 集合。每个 skill 把嵌入式开发中的一类工作（写驱动、板级 bring-up、代码审查、协议文档、方案设计、仓库维护）沉淀成可复用、可评测、带版本的工作方法，在任何项目中安装后即可调用。
+面向**嵌入式软件工程**的 Claude Code skills 集合。每个 skill 把嵌入式开发中的一类工作（写驱动、板级 bring-up、代码审查、协议文档、方案设计、项目管理、仓库维护）沉淀成可复用、可评测、带版本的工作方法，在任何项目中安装后即可调用。
 
 本仓库本身是一个 [Claude Code 插件市场](https://code.claude.com/docs/en/plugin-marketplaces)：按工作领域分成多个插件，按需安装。
 
@@ -54,6 +54,7 @@ claude plugin marketplace add MD-20880/embedded-skills --scope project
 | [emb-bringup](plugins/emb-bringup/README.md) | 板级 bring-up 与验证 | — | 上电清单、验证程序、软硬件问题定位、验证记录 |
 | [emb-review](plugins/emb-review/README.md) | 嵌入式代码审查 | — | 中断与并发、内存与栈、可移植性专项审查 |
 | [emb-docs](plugins/emb-docs/README.md) | 协议与设计文档 | — | 协议规范、测试向量、规范与实现一致性、交付文档 |
+| [emb-project](plugins/emb-project/README.md) | 项目管理 | `issue-tracking` | issue（问题、验证、缺陷、任务）、证据等级、总览、EVT/DVT 阶段门禁 |
 
 每个插件 README 列出了已发布和规划中的 skill。
 
@@ -65,7 +66,7 @@ embedded-skills/
 ├── plugins/<插件>/                   # 一个领域一个插件，插件名统一以 emb- 开头
 │   ├── .claude-plugin/plugin.json    #   插件清单（含语义化版本号）
 │   ├── README.md / CHANGELOG.md      #   插件说明、skill 清单、变更记录
-│   ├── skills/<skill>/               #   SKILL.md + references/ + scripts/
+│   ├── skills/<skill>/               #   SKILL.md + references/ + scripts/ + assets/
 │   └── evals/<skill>/<用例>/         #   claude plugin eval 评测用例
 ├── templates/                        # 新建 skill 与评测用例的模板
 ├── tools/                            # lint_skills.py（规范检查）、new_skill.py（脚手架）

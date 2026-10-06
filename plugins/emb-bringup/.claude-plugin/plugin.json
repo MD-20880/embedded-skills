@@ -13,8 +13,5 @@
     "validation",
     "hardware",
     "debug"
-  ],
-  "dependencies": [
-    "emb-repo"
   ]
 }

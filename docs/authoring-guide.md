@@ -14,6 +14,7 @@
 | 新板上电、验证程序、软硬件问题定位、验证记录 | `emb-bringup` |
 | 审查代码中的嵌入式特有风险 | `emb-review` |
 | 协议规范、测试向量、规范与实现一致性、交付文档 | `emb-docs` |
+| issue 管理、验证矩阵、项目总览、阶段门禁、风险与变更管理 | `emb-project` |
 | 项目画像、目录与构建约定、文档索引、版本发布 | `emb-repo` |
 
 跨领域的工作，按**主要产出物**归属：产出是驱动代码 → `emb-drivers`；产出是审查报告 → `emb-review`。
@@ -39,11 +40,15 @@ skills/<skill>/
 ├── SKILL.md            # 必需：frontmatter + 流程与规则
 ├── references/         # 可选：检查清单、规范、术语、示例；SKILL.md 中按需链接
 │   └── <topic>.md
-└── scripts/            # 可选：确定性的辅助脚本，只用 Python 标准库
-    └── <tool>.py
+├── scripts/            # 可选：确定性的辅助脚本，只用 Python 标准库
+│   ├── <tool>.py
+│   └── selfcheck.py    # 可选：本 skill 特有的开发期自检，lint 会自动运行
+└── assets/             # 可选：供用户复制到项目中使用的模板、表单（不是给模型读的参考资料）
+    └── ...
 ```
 
 - 插件根目录不要放 `bin/`（claude.ai 组织同步会拒绝）。**【lint】**
+- `scripts/selfcheck.py`：检查本 skill 特有的一致性（如章节引用、模板字段），失败时以非 0 退出并打印 `FAIL ...` 行；可使用 PyYAML。通用检查（frontmatter、链接、占位符）交给 `tools/lint_skills.py`，不要重复实现。
 - 脚本在 SKILL.md 中用 `python3 ${CLAUDE_SKILL_DIR}/scripts/<tool>.py` 调用，不要写死绝对路径。
 - 脚本必须是只读的，或者只写入明确告知用户的文件；不得执行构建、烧录或任何会改变设备状态的操作，除非这就是该 skill 的目的，且 skill 设置了 `disable-model-invocation: true`。
 
@@ -89,6 +94,7 @@ description 决定 Claude 何时自动选用这个 skill，是最重要的一行
    - 第一步固定为**读取项目画像**，直接使用 [profile-spec 第 6 节](../plugins/emb-repo/skills/project-profile/references/profile-spec.md#6-skill-如何消费画像写给-skill-作者) 给出的标准段落，并写明本 skill 需要哪些章节。**【lint：未提及画像时警告】**
    - 每一步写“做什么、怎么判断做完了”，不写背景故事。
    - 需要用户决策的地方明确写“向用户确认”。
+   - 结论涉及“是否通过 / 是否成立”时，沿用 `emb-project:issue-tracking` 的证据等级 L0–L4 和适用对象写法（[method.md 第 7 章](../plugins/emb-project/skills/issue-tracking/references/method.md#7-证据等级)）。
 4. **自检清单**：交付前逐项核对的检查项。
 5. **汇报格式**：结论 → 产出物位置 → 待确认问题 → 建议的下一步。
 6. **约束**：不做的事，以及哪些高风险操作需要用户确认。

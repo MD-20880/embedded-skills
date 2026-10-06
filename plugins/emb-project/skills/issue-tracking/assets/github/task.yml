@@ -1,0 +1,51 @@
+name: 任务
+description: 目标明确、做完就能直接验证的工作：写驱动、出测试固件、改版图、做工装
+labels:
+- task
+body:
+- type: input
+  id: target
+  attributes:
+    label: 适用对象
+    description: 板名与硬件版本、固件版本、配置或装配差异
+  validations:
+    required: true
+- type: input
+  id: domain
+  attributes:
+    label: 领域
+    description: 硬件 / 固件 / 结构 / 射频 / 工艺 / 供应商 / 认证……
+- type: input
+  id: gate
+  attributes:
+    label: 截止节点
+    description: 必须在哪个阶段或节点之前完成，如 EVT、DVT 改板冻结前、PVT、MP
+  validations:
+    required: true
+- type: textarea
+  id: goal
+  attributes:
+    label: 目标
+    description: 服务于哪个问题、验证或阶段目标（附链接）
+  validations:
+    required: true
+- type: textarea
+  id: done
+  attributes:
+    label: 完成定义
+    description: 可直接验证的条件：产出物、验收方法、通过标准
+  validations:
+    required: true
+- type: textarea
+  id: out
+  attributes:
+    label: 范围外
+- type: textarea
+  id: delivery
+  attributes:
+    label: 交付记录（关闭前填写）
+    value: '- 产出：
+
+      - 验收结果：
+
+      '

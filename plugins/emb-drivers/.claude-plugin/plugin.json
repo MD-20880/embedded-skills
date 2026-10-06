@@ -15,8 +15,5 @@
     "spi",
     "uart",
     "porting"
-  ],
-  "dependencies": [
-    "emb-repo"
   ]
 }

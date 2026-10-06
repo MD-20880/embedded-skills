@@ -22,7 +22,8 @@ embedded-skills（本仓库 = 插件市场）
     ├── emb-drivers  │
     ├── emb-bringup  ├── 均依赖 emb-repo；需要项目事实时先读项目画像
     ├── emb-review   │
-    └── emb-docs     ┘
+    ├── emb-docs     │
+    └── emb-project  ┘
             │
             │ /plugin install
             ▼
@@ -37,7 +38,7 @@ embedded-skills（本仓库 = 插件市场）
 | --- | --- | --- |
 | 市场目录 | `.claude-plugin/marketplace.json` | 登记所有插件及其路径，用户通过它添加市场、安装插件 |
 | 插件 | `plugins/emb-<领域>/` | 一个工作领域一个插件，可独立安装、独立版本 |
-| skill | `plugins/<插件>/skills/<skill>/` | `SKILL.md`（流程与规则）+ `references/`（按需加载的细节）+ `scripts/`（确定性的辅助脚本） |
+| skill | `plugins/<插件>/skills/<skill>/` | `SKILL.md`（流程与规则）+ `references/`（按需加载的细节）+ `scripts/`（确定性的辅助脚本）+ `assets/`（复制到项目中使用的模板、表单） |
 | 评测用例 | `plugins/<插件>/evals/<skill>/<用例>/` | `claude plugin eval` 用例，验证 skill 能否被正确触发、产出是否达标 |
 | 项目画像 | 使用方项目的 `docs/embedded-profile.md` | 项目事实的唯一汇总，所有 skill 共享 |
 | 模板与工具 | `templates/`、`tools/` | 新建 skill 的骨架、仓库规范检查 |
@@ -54,7 +55,7 @@ embedded-skills（本仓库 = 插件市场）
 
 ### 4.2 按工作领域拆分为多个插件
 
-- **决策**：6 个插件 `emb-design / emb-drivers / emb-bringup / emb-review / emb-docs / emb-repo`。
+- **决策**：7 个插件 `emb-design / emb-drivers / emb-bringup / emb-review / emb-docs / emb-project / emb-repo`。
 - **理由**：skill 数量增长后仍然好找；每个插件独立版本，改动影响面小；插件名就是调用前缀，`/emb-drivers:driver-port` 一眼可知领域。
 - **命名前缀 `emb-`**：插件名是全局命名空间，加前缀可以避免与用户安装的其他插件（如通用的 `docs`、`review`）冲突。
 - **新增领域的门槛**：现有插件都放不下，且预计会有 3 个以上 skill 时，才新建插件。
@@ -69,7 +70,7 @@ embedded-skills（本仓库 = 插件市场）
 - **为什么放在 `docs/` 而不是 `.claude/`**：`.claude/` 是 Claude Code 的受保护目录，写入总需人工确认，自动化和评测场景中会被直接拒绝；而且画像本身也是一份适合新成员阅读的项目速览。
 - **降级策略**：画像不存在时，skill 仍然完成任务（按需最小化探索仓库），并在结尾建议建立画像。
 - **规范位置**：[profile-spec.md](../plugins/emb-repo/skills/project-profile/references/profile-spec.md) 是唯一权威定义。
-- **依赖声明**：其他 5 个插件在 `plugin.json` 中声明依赖 `emb-repo`，安装任一领域插件时自动装上画像能力。
+- **依赖声明**：其他 6 个插件在 `marketplace.json` 的插件条目中声明依赖 `emb-repo`，安装任一领域插件时自动装上画像能力。依赖**不写在 `plugin.json`**：`claude plugin eval` 按路径评测时只加载被测插件，`plugin.json` 中声明的依赖无法满足，会导致被测插件整个不被加载（已实测）；写在市场条目中则只在通过市场安装时生效。**【lint】**
 
 ### 4.4 渐进式披露
 
@@ -106,5 +107,6 @@ embedded-skills（本仓库 = 插件市场）
 
 ## 6. 演进方向
 
+- **共享概念**：`emb-project:issue-tracking` 定义的证据等级（L0–L4）和“结论绑定适用对象（板、硬件版本、固件版本）”适用于整个集合。后续 `emb-bringup`、`emb-review` 的 skill 在给出结论时沿用同一套等级与写法，引用 [method.md 第 7 章](../plugins/emb-project/skills/issue-tracking/references/method.md#7-证据等级)，不另起定义。
 - 积累到一定数量的 skill 后，评估是否增加跨插件的 agent（如串起“方案→驱动→验证→文档”的端到端流程）。
 - 当多个 skill 共享同一份参考资料（如通用的嵌入式审查清单）时，放在被依赖插件中，通过符号链接共享（市场内的符号链接在安装时会被解引用复制）。

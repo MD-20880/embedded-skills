@@ -1,0 +1,79 @@
+name: 缺陷
+description: 已确认的错误：现象和期望都明确（原因不明时请先开“问题”查根因）
+labels:
+- defect
+body:
+- type: input
+  id: target
+  attributes:
+    label: 适用对象
+    description: 板名与硬件版本、固件版本、配置或装配差异
+  validations:
+    required: true
+- type: input
+  id: domain
+  attributes:
+    label: 领域
+    description: 硬件 / 固件 / 结构 / 射频 / 工艺 / 供应商 / 认证……
+- type: input
+  id: gate
+  attributes:
+    label: 截止节点
+    description: 必须在哪个阶段或节点之前完成，如 EVT、DVT 改板冻结前、PVT、MP
+  validations:
+    required: true
+- type: input
+  id: owner
+  attributes:
+    label: 决策人
+    description: 不知道就写“待定，由谁定”
+- type: textarea
+  id: repro
+  attributes:
+    label: 现象与复现
+    value: '- 步骤：
+
+      - 环境：
+
+      - 复现率：
+
+      '
+  validations:
+    required: true
+- type: textarea
+  id: expected
+  attributes:
+    label: 期望
+    description: 正确的行为是什么，依据是什么
+  validations:
+    required: true
+- type: textarea
+  id: impact
+  attributes:
+    label: 影响
+    description: 影响哪些对象、多严重、是否阻塞某个阶段、有无临时规避
+- type: textarea
+  id: cause
+  attributes:
+    label: 根因
+    description: 硬件 / 固件 / 结构 / 工艺 / 器件 / 规格本身；未确认写“待查”
+- type: textarea
+  id: versions
+  attributes:
+    label: 影响版本
+    value: '- 硬件：
+
+      - 固件：
+
+      '
+- type: textarea
+  id: disposition
+  attributes:
+    label: 处置（关闭前填写）
+    value: '- 处置方式：固件修复 / 改板修复 / 软件规避 / 接受限制
+
+      - 目标版本：
+
+      - 复测（对象、结果、证据等级、链接）：
+
+      '

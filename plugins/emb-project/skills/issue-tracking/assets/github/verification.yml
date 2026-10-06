@@ -1,0 +1,81 @@
+name: 验证
+description: 对照已知的规格或限值，判断某个对象是否达标
+labels:
+- verification
+body:
+- type: markdown
+  attributes:
+    value: 标题写成：[话题] X 在 Y 条件下是否达到 Z（Z 写期望状态，不加问号）。限值还没定的话，请先开一个“问题”去定限值。
+- type: input
+  id: target
+  attributes:
+    label: 适用对象
+    description: 板名与硬件版本、固件版本、配置或装配差异
+  validations:
+    required: true
+- type: input
+  id: domain
+  attributes:
+    label: 领域
+    description: 硬件 / 固件 / 结构 / 射频 / 工艺 / 供应商 / 认证……
+- type: input
+  id: gate
+  attributes:
+    label: 截止节点
+    description: 必须在哪个阶段或节点之前完成，如 EVT、DVT 改板冻结前、PVT、MP
+  validations:
+    required: true
+- type: input
+  id: owner
+  attributes:
+    label: 决策人
+    description: 不知道就写“待定，由谁定”
+- type: textarea
+  id: basis
+  attributes:
+    label: 依据
+    description: 规格条目、器件手册、法规标准或需求编号
+  validations:
+    required: true
+- type: textarea
+  id: criteria
+  attributes:
+    label: 判据
+    value: '- 限值：
+
+      - 测量方法：
+
+      - 测试条件（温度、电压、负载、样本数）：
+
+      - 要求的证据等级（L0 资料 / L1 仿真 / L2 台架 / L3 整机 / L4 认证）：
+
+      '
+  validations:
+    required: true
+- type: textarea
+  id: deps
+  attributes:
+    label: 依赖
+    value: '- 阻塞于：无
+
+      '
+- type: textarea
+  id: results
+  attributes:
+    label: 结果
+    value: '| 对象 | 条件 | 结果 | 判定 | 证据 |
+
+      | --- | --- | --- | --- | --- |
+
+      |  |  |  |  |  |
+
+      '
+- type: textarea
+  id: verdict
+  attributes:
+    label: 判定（关闭前填写）
+    value: '- 判定：通过 / 不通过 / 有条件通过
+
+      - 后续 issue：
+
+      '
