@@ -53,7 +53,7 @@ claude plugin marketplace add MD-20880/embedded-skills --scope project
 | [emb-drivers](plugins/emb-drivers/README.md) | 外设驱动开发 | — | 从手册到驱动、寄存器映射、跨 MCU 移植 |
 | [emb-bringup](plugins/emb-bringup/README.md) | 板级 bring-up 与验证 | — | 上电清单、验证程序、软硬件问题定位、验证记录 |
 | [emb-review](plugins/emb-review/README.md) | 嵌入式代码审查 | — | 中断与并发、内存与栈、可移植性专项审查 |
-| [emb-docs](plugins/emb-docs/README.md) | 协议与设计文档 | — | 协议规范、测试向量、规范与实现一致性、交付文档 |
+| [emb-docs](plugins/emb-docs/README.md) | 协议与设计文档 | `knowledge-governance`（开发中） | 协议规范、测试向量、规范与实现一致性、交付文档 |
 | [emb-project](plugins/emb-project/README.md) | 项目管理 | `issue-tracking` | issue（问题、验证、缺陷、任务）、证据等级、总览、EVT/DVT 阶段门禁 |
 
 每个插件 README 列出了已发布和规划中的 skill。

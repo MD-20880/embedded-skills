@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: mixed-authority-docs
+description: 旧 Demo 和评审版协议混在 docs 根目录，索引错误地把二者都称为“正式”；应区分状态和证据，不作文件移动。
+tags: [knowledge-governance, positive, scaffold]
+context:
+  scaffold_script: setup.sh

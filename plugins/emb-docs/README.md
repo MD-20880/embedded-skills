@@ -13,6 +13,7 @@
 
 | Skill | 调用方式 | 状态 | 作用 |
 | --- | --- | --- | --- |
+| [knowledge-governance](skills/knowledge-governance/SKILL.md) | `/emb-docs:knowledge-governance` | 🚧 开发中 | 审计文档权威性/生命周期，规划分类与迁移，连接工程依据、协议、ADR、实现和验收 |
 | protocol-spec | `/emb-docs:protocol-spec` | 📝 规划中 | 编写协议规范：帧格式、字段、状态机、时序、错误处理、版本演进 |
 | test-vectors | `/emb-docs:test-vectors` | 📝 规划中 | 从协议规范生成测试向量与自动校验脚本 |
 | spec-impl-consistency | `/emb-docs:spec-impl-consistency` | 📝 规划中 | 逐条比对规范与实现，输出差异清单 |
