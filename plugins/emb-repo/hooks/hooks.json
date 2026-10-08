@@ -1,0 +1,33 @@
+{
+  "description": "Lightweight engineering principles for sessions and subagents; advisory only.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py"
+            ],
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py"
+            ],
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

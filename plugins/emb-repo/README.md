@@ -1,6 +1,6 @@
 # emb-repo · 项目 Repo 管理
 
-维护嵌入式仓库的“地基”：项目画像、目录与构建约定、文档索引、版本发布。
+维护嵌入式仓库的“地基”：项目画像、通用工程默认原则、目录与构建约定、文档索引、版本发布。
 
 ## 适用场景
 
@@ -14,11 +14,18 @@
 | Skill | 调用方式 | 状态 | 作用 |
 | --- | --- | --- | --- |
 | [project-profile](skills/project-profile/SKILL.md) | `/emb-repo:project-profile` | ✅ 已发布 | 建立 / 更新 / 核查项目画像 `docs/embedded-profile.md`，供所有 skills 共用 |
+| [engineering-principles](skills/engineering-principles/SKILL.md) | `/emb-repo:engineering-principles` | 🚧 开发中 | 提供工程知识、假设与承诺、契约一致性、证据与交接原则；SessionStart/SubagentStart 注入精简原则 |
 | repo-layout | `/emb-repo:repo-layout` | 📝 规划中 | 梳理或执行目录与构建约定：新增板、硬件版本、程序时的落位与改动清单 |
 | docs-index-sync | `/emb-repo:docs-index-sync` | 📝 规划中 | 检查并同步 README、文档索引与实际目录 |
 | release-notes | `/emb-repo:release-notes` | 📝 规划中 | 整理版本变更记录与发布说明 |
 
 > 状态说明：✅ 已发布（含评测用例）；📝 规划中（名称与范围可能调整）。新增 skill 的流程见仓库根目录 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+
+## 默认原则自动加载
+
+插件启用时，`hooks/hooks.json` 在 `SessionStart` 和 `SubagentStart` 注入同一份 [轻量工程原则](skills/engineering-principles/references/core-principles.md)，不执行审批或任务管理。Hook 由 Python 标准库脚本实现；需在 Claude Code 环境安装 `python3`。
+
+遇到工程方案、契约冲突、证据和交接问题时，可调用 `/emb-repo:engineering-principles` 读取扩展知识；普通编码任务不会因此被强制写管理报告。可运行 `python3 skills/engineering-principles/scripts/selfcheck.py` 检查两种 Hook 输出。
 
 ## 依赖的项目画像章节
 
