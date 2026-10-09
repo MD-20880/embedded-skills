@@ -6,13 +6,14 @@
 
 ### 新增
 
-- `engineering-principles`：经过访谈确认的 Inform + Principles 工程默认原则，区分 Issue/ADR/协议/方案、探索与承诺、共同主线契约、证据和有界可诊断交接。
-- `SessionStart` / `SubagentStart` 插件 Hook：共用一份精简原则，默认注入轻量上下文；详细参考由 Skill 按需加载，不替代专业 Skills。
-- 提供标准库 Hook 脚本和确定性自检，新增复杂工程契约与普通 C 语法的正反向 Skill 评测。
+- `engineering-principles`：经过访谈确认的 Inform + Principles 工程默认原则，区分 Issue / ADR / 协议 / 方案、假设与承诺、主线契约冲突、证据，以及交付可接手、问题可诊断。
+- `SessionStart` / `SubagentStart` 插件 hook：会话开始注入轻量原则，子 Agent 启动只注入一行精简版（由同一份 `core-principles.md` 生成）；详细参考由 skill 按需加载，不替代专业 skill。
+- 插件选项 `inject_principles`（默认开启）：可在 `/config` 或 `claude plugin configure` 中关闭自动注入。
+- 标准库 hook 脚本与确定性自检（输出格式、开关、体积上限）；正向（契约冲突、轻量变更）与反向评测用例。
 
-### 状态
+### 变更
 
-- 尚未运行 Claude 官方 Skill 评测，README 暂标“开发中”；正式发布前按 docs/evals.md 评测。
+- 插件定位扩展为“嵌入式项目基础”：除项目画像外，承载默认工程原则。
 
 ## [0.1.0] - 2026-10-06
 

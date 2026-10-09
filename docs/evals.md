@@ -19,6 +19,7 @@ plugins/<插件>/evals/
 
 - `evals/` 下的一级目录名必须是本插件已有的 skill 名。**【lint】**
 - 评测只加载被测插件本身。因此插件依赖要写在 `marketplace.json` 条目中，不能写在 `plugin.json`，否则被测插件不会被加载，所有“skill 被触发”的评分器都会失败（见 [架构说明 4.3](architecture.md#43-项目画像方法与事实分离)）。**【lint】**
+- 被测插件若带有 hook（如 `emb-repo` 的工程原则注入），评测时 hook 会生效；判断“装与不装”的差值时要考虑这一点。
 - 评测结果写在 `evals/results/`，已加入 `.gitignore`，不要提交。
 
 ## 2. 用例设计
@@ -96,6 +97,9 @@ claude plugin eval . --scaffold --allow-tools Write "Bash(python3 *)" "Bash(git 
 | emb-repo | `project-profile/init-multi-board` | 1.00（1 次） |
 | emb-repo | `project-profile/check-stale` | 1.00（1 次） |
 | emb-repo | `project-profile/no-trigger-general-c` | 1.00（1 次） |
+| emb-repo | `engineering-principles/contract-conflict` | 1.00（3 次，2026-10-09） |
+| emb-repo | `engineering-principles/lightweight-change` | 1.00（3 次，2026-10-09） |
+| emb-repo | `engineering-principles/no-trigger` | 1.00（3 次，2026-10-09） |
 | emb-project | `issue-tracking/close-check-checklist-done` | 1.00（3 次） |
 | emb-project | `issue-tracking/gate-review-dvt` | 1.00（3 次） |
 | emb-project | `issue-tracking/no-trigger-driver-code` | 1.00（3 次） |

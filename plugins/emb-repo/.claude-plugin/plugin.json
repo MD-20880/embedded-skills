@@ -17,5 +17,13 @@
     "engineering-principles",
     "knowledge",
     "adr"
-  ]
+  ],
+  "userConfig": {
+    "inject_principles": {
+      "type": "boolean",
+      "title": "自动注入工程原则 / Inject engineering principles",
+      "description": "开启时，在会话开始注入轻量工程原则，在子 Agent 启动时注入一行精简版；关闭后只能通过 /emb-repo:engineering-principles 手动使用。On: inject short principles at session start and a one-line digest for subagents.",
+      "default": true
+    }
+  }
 }

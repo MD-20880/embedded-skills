@@ -62,7 +62,7 @@
     {
       "name": "emb-repo",
       "source": "./plugins/emb-repo",
-      "description": "项目 Repo 管理：项目画像、目录与构建约定、文档索引同步、版本发布记录。Embedded repo management: project profile, layout/build conventions, docs index, releases.",
+      "description": "嵌入式项目基础：工程默认原则、项目画像、文档/构建目录和版本管理。Embedded project foundations: default engineering principles, project profile and repository management.",
       "category": "embedded"
     }
   ]
