@@ -15,7 +15,7 @@
 | --- | --- | --- | --- |
 | [project-profile](skills/project-profile/SKILL.md) | `/emb-repo:project-profile` | ✅ 已发布 | 建立 / 更新 / 核查项目画像 `docs/embedded-profile.md`，供所有 skills 共用 |
 | [engineering-principles](skills/engineering-principles/SKILL.md) | `/emb-repo:engineering-principles` | ✅ 已发布 | 提供工程知识、假设与承诺、契约一致性、证据与交接原则；SessionStart/SubagentStart 注入精简原则 |
-| [artifact-conventions](skills/artifact-conventions/SKILL.md) | `/emb-repo:artifact-conventions` | 🚧 开发中 | 定义受管理工程文件类型、项目 YAML 索引、身份与生命周期；普通文件保持轻量 |
+| [artifact-conventions](skills/artifact-conventions/SKILL.md) | `/emb-repo:artifact-conventions` | ✅ 已发布 | 定义受管理工程文件类型、项目 YAML 索引、身份与生命周期；普通文件保持轻量 |
 | repo-layout | `/emb-repo:repo-layout` | 📝 规划中 | 梳理或执行目录与构建约定：新增板、硬件版本、程序时的落位与改动清单 |
 | docs-index-sync | `/emb-repo:docs-index-sync` | 📝 规划中 | 检查并同步 README、文档索引与实际目录 |
 | release-notes | `/emb-repo:release-notes` | 📝 规划中 | 整理版本变更记录与发布说明 |

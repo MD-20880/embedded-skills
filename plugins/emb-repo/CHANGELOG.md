@@ -16,7 +16,7 @@
 
 ### 状态
 
-- 新 Skill 尚待完成计费的 Claude Skill Evals，表中暂标“开发中”；合入前须验证触发和低干扰表现。
+- 评测（每个用例 3 次）：`create-managed-spec`、`registry-inconsistency`、`no-trigger` 均为 1.00；实际安装后验证：新建受管理文件会自动登记为 `draft`，新建普通脚本不改动登记表。
 
 ## [0.2.0] - 2026-10-09
 
