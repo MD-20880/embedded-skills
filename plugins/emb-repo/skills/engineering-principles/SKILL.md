@@ -50,7 +50,8 @@ allowed-tools: Read Glob Grep
 1. 给出当前有效的依据入口、负责模块/构建 Target、关联验证；区分事实、推断、尚缺证据。
 2. 将协议已批准、代码已实现、测试已通过、实板已验收分别描述，**不得互相冒充**。适用时沿用 `emb-project:issue-tracking` 的 L0–L4 证据等级并标明板卡/固件版本。
 3. 给出可独立操作的下一步，而不是要求新人从头阅读所有讨论或让 AI 重新推断整条工程历史。
-4. 需要执行具体管理操作时，使用专业 Skill：`/emb-design:adr-write` 负责 ADR（含人的确认），`/emb-project:issue-tracking` 负责 Issue 与验收，其他协议/测试能力按项目所安装的 Skill 选择。不要声称某个未安装或规划中的 Skill 已可用。
+4. 创建、迁移或修订工程文件且涉及受管理类型时，按 `/emb-repo:artifact-conventions` 判断登记与生命周期；普通源码和临时文件不增加纳管要求。
+5. 需要执行具体管理操作时，使用专业 Skill：`/emb-design:adr-write` 负责 ADR（含人的确认），`/emb-project:issue-tracking` 负责 Issue 与验收，其他协议/测试能力按项目所安装的 Skill 选择。不要声称某个未安装或规划中的 Skill 已可用。
 
 ### 5. 自检和回复
 

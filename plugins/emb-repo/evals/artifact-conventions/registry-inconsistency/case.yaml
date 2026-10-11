@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: registry-inconsistency
+description: 索引将 Proposed ADR 误标 Active，另有规范遗漏登记；只读诊断不得自作批准。
+tags: [artifact-conventions, positive, scaffold]
+context:
+  scaffold_script: setup.sh

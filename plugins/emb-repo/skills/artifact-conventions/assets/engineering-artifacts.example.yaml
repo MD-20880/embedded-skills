@@ -1,0 +1,39 @@
+# Project engineering artifact registry — 示例，不包含真实项目事实
+schema_version: 1
+# 初次采用时若尚未盘点所有历史管理类型文件，可临时声明覆盖不完整：
+coverage: partial
+types:
+  requirement:
+    purpose: "Shared product/system requirements and acceptance goals"
+  reference:
+    purpose: "Versioned external source: datasheets, schematics, standards"
+  design:
+    purpose: "System/architecture designs used as a shared engineering basis"
+  decision:
+    purpose: "Architectural decision records with long-term rationale"
+  specification:
+    purpose: "Normative interface/protocol behavior and compatibility rules"
+  verification:
+    purpose: "Verification plans, criteria and reproducible evidence"
+  # 项目可在这里声明更多需要管理的类型
+
+artifacts:
+  - id: SYS-LINK-001
+    type: design
+    path: docs/design/link-architecture.md
+    status: draft
+    scope: ["project"]
+
+  - id: SPEC-LINK-001
+    type: specification
+    path: docs/protocols/link-v1.md
+    status: draft
+    scope: ["product:prototype", "board:rev-a"]
+    revision: "0.1"
+
+  - id: ADR-0001
+    type: decision
+    path: docs/adr/0001-link-strategy.md
+    status: draft
+    scope: ["project"]
+    # ADR 正文中具体状态（如 Proposed/Accepted）由专业 ADR 流程维护

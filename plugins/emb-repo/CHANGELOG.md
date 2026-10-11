@@ -2,6 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] - 2026-10-09
+
+### 新增
+
+- `artifact-conventions`：基于用户确认的 Inform + Principles 管理形式，指导工程文件类型识别、项目 YAML 登记入口、稳定 ID、通用生命周期、适用范围和项目新增类型。
+- 登记表规范、类型目录、增量纳管与专业 Skill 集成指南及可复制示例；新增正向创建/核查与普通脚本反向评测。
+
+### 变更
+
+- `engineering-principles` 轻量核心新增“受管理文件有入口”原则；会话注入与子 Agent 摘要使用同一来源，其余工作仍不强制纳管。
+- README 中补充受管理登记表与普通文档导航索引的区别。
+
+### 状态
+
+- 评测（每个用例 3 次）：`create-managed-spec`、`registry-inconsistency`、`no-trigger` 均为 1.00；实际安装后验证：新建受管理文件会自动登记为 `draft`，新建普通脚本不改动登记表。
+
 ## [0.2.0] - 2026-10-09
 
 ### 新增
