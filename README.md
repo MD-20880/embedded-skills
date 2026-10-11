@@ -48,7 +48,7 @@ claude plugin marketplace add MD-20880/embedded-skills --scope project
 
 | 插件 | 领域 | 已发布 skill | 说明 |
 | --- | --- | --- | --- |
-| [emb-repo](plugins/emb-repo/README.md) | 项目 Repo 管理 | `project-profile` | 项目画像、目录与构建约定、文档索引、版本发布 |
+| [emb-repo](plugins/emb-repo/README.md) | 项目基础与 Repo 管理 | `project-profile`、`engineering-principles` | 默认工程原则（可关闭）、项目画像、目录与构建约定、文档索引、版本发布 |
 | [emb-design](plugins/emb-design/README.md) | 方案设计 | — | 需求拆解、方案对比与选型、资源预算、ADR |
 | [emb-drivers](plugins/emb-drivers/README.md) | 外设驱动开发 | — | 从手册到驱动、寄存器映射、跨 MCU 移植 |
 | [emb-bringup](plugins/emb-bringup/README.md) | 板级 bring-up 与验证 | — | 上电清单、验证程序、软硬件问题定位、验证记录 |
@@ -56,7 +56,7 @@ claude plugin marketplace add MD-20880/embedded-skills --scope project
 | [emb-docs](plugins/emb-docs/README.md) | 协议与设计文档 | — | 协议规范、测试向量、规范与实现一致性、交付文档 |
 | [emb-project](plugins/emb-project/README.md) | 项目管理 | `issue-tracking` | issue（问题、验证、缺陷、任务）、证据等级、总览、EVT/DVT 阶段门禁 |
 
-每个插件 README 列出了已发布和规划中的 skill。
+每个插件 README 列出了已发布和规划中的 skill。`emb-repo` 默认在会话启动时注入一份轻量工程原则、在子 Agent 启动时注入一行精简版。它只提供判断默认值，不是项目门禁；由于所有领域插件都依赖 `emb-repo`，可在 `/config` 中关闭 `emb-repo` 的“自动注入工程原则”选项，见 [emb-repo README](plugins/emb-repo/README.md#默认原则自动加载)。
 
 ## 仓库结构
 

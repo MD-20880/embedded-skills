@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: contract-conflict
+description: 旧 Demo 被误称正式规范，新协议是未批准草案；需要区分层次、证据、主线冲突而不接管管理。
+tags: [engineering-principles, positive, scaffold]
+context:
+  scaffold_script: setup.sh

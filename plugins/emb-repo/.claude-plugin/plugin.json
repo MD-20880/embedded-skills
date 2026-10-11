@@ -1,8 +1,8 @@
 {
   "name": "emb-repo",
   "displayName": "Embedded Repo",
-  "version": "0.1.0",
-  "description": "项目 Repo 管理：项目画像、目录与构建约定、文档索引同步、版本发布记录。Embedded repo management: project profile, layout/build conventions, docs index, releases.",
+  "version": "0.2.0",
+  "description": "嵌入式项目基础：工程默认原则、项目画像、文档/构建目录和版本管理。Embedded project foundations: default engineering principles, project profile and repository management.",
   "author": {
     "name": "MD-20880"
   },
@@ -13,6 +13,17 @@
     "profile",
     "cmake",
     "release",
-    "documentation"
-  ]
+    "documentation",
+    "engineering-principles",
+    "knowledge",
+    "adr"
+  ],
+  "userConfig": {
+    "inject_principles": {
+      "type": "boolean",
+      "title": "自动注入工程原则 / Inject engineering principles",
+      "description": "开启时，在会话开始注入轻量工程原则，在子 Agent 启动时注入一行精简版；关闭后只能通过 /emb-repo:engineering-principles 手动使用。On: inject short principles at session start and a one-line digest for subagents.",
+      "default": true
+    }
+  }
 }

@@ -17,7 +17,7 @@
 ```text
 embedded-skills（本仓库 = 插件市场）
 └── marketplace.json
-    ├── emb-repo ─────── project-profile …   基础插件：生成与维护项目画像
+    ├── emb-repo ─────── project-profile、engineering-principles …   基础插件：项目画像 + 默认工程原则（hook 注入，可关闭）
     ├── emb-design   ┐
     ├── emb-drivers  │
     ├── emb-bringup  ├── 均依赖 emb-repo；需要项目事实时先读项目画像
@@ -39,6 +39,7 @@ embedded-skills（本仓库 = 插件市场）
 | 市场目录 | `.claude-plugin/marketplace.json` | 登记所有插件及其路径，用户通过它添加市场、安装插件 |
 | 插件 | `plugins/emb-<领域>/` | 一个工作领域一个插件，可独立安装、独立版本 |
 | skill | `plugins/<插件>/skills/<skill>/` | `SKILL.md`（流程与规则）+ `references/`（按需加载的细节）+ `scripts/`（确定性的辅助脚本）+ `assets/`（复制到项目中使用的模板、表单） |
+| 插件 hook | `plugins/<插件>/hooks/hooks.json` | 在会话或子 Agent 启动等事件上自动执行的只读脚本；目前仅 `emb-repo` 用于注入默认工程原则（见 4.8） |
 | 评测用例 | `plugins/<插件>/evals/<skill>/<用例>/` | `claude plugin eval` 用例，验证 skill 能否被正确触发、产出是否达标 |
 | 项目画像 | 使用方项目的 `docs/embedded-profile.md` | 项目事实的唯一汇总，所有 skill 共享 |
 | 模板与工具 | `templates/`、`tools/` | 新建 skill 的骨架、仓库规范检查 |
@@ -96,6 +97,17 @@ embedded-skills（本仓库 = 插件市场）
 
 - **决策**：版本号只写在各插件的 `plugin.json`，配合插件 CHANGELOG；CI 强制要求改动过的插件必须升版本。
 - **理由**：使用方只有在版本变化时才会收到更新，所以写到一半的修改不会推到使用方；版本与 CHANGELOG 对应，可以回溯每次变更。
+
+### 4.8 插件 hook：克制使用，必须可关闭
+
+- **决策**：只在“每个会话都应具备的少量默认知识”这类场景使用插件 hook。目前唯一的例子是 `emb-repo` 在 `SessionStart` 注入轻量工程原则、在 `SubagentStart` 注入一行精简版。
+- **理由**：skill 只有在被触发时才生效，而工程原则（区分假设与承诺、实现与验证等）需要在普通任务中默认体现；hook 是让它“默认在场”的唯一机制。
+- **约束**：
+  - **影响面大**：所有领域插件都依赖 `emb-repo`，所以 `emb-repo` 的 hook 会到达每一位使用者。因此 hook 必须提供 `userConfig` 开关，并在插件 README 中写明如何关闭。
+  - **只读、无副作用**：hook 只能读取插件自身文件并输出上下文，不审批、不拦截、不写仓库、不访问网络。
+  - **控制体积**：注入内容常驻上下文，按每个会话、每个子 Agent 计费。会话级注入控制在数千字符以内，子 Agent 只注入一行；自检脚本检查上限（Claude Code 对单次 hook 输出的硬上限是 10,000 字符）。
+  - **单一来源**：注入文本与 skill 引用同一份文件，不维护两份。
+  - **评测含义**：评测时被测插件的 hook 会生效，所以 `emb-repo` 的评测都在“已注入原则”的状态下运行；其他插件的评测只加载自身，不包含这些原则。
 
 ## 5. 一次典型使用的数据流
 
