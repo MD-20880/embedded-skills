@@ -3,7 +3,7 @@ name: artifact-conventions
 description: 在创建、修改或整理工程文件时，辨别项目声明的受管理工程资产类型，说明 YAML 登记索引、稳定身份、状态、范围与生命周期的轻量约定，并指出需同步登记的文件。Recognize managed engineering artifact types and maintain a lightweight project registry of their identity and lifecycle.
 when_to_use: 创建工程文档、增加协议规范、更新设计方案、登记 ADR、收录验证报告、迁移受管理文件、建立工程文件索引、整理项目的受管理资产类型时使用；"create a design document", "register an engineering artifact", "manage technical documents". 普通源码、临时脚本、随手笔记等不需要单独触发此 Skill。
 argument-hint: "[新建/修改的文件或工程文件管理问题]"
-allowed-tools: Read Glob Grep
+allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *)
 ---
 
 # 工程文件管理约定（artifact-conventions）
@@ -14,6 +14,7 @@ allowed-tools: Read Glob Grep
 - [内置类型与项目扩展、非纳管边界](references/type-guide.md)
 - [创建、修订、迁移与专业 Skills 集成](references/adoption-and-integration.md)
 - [可复制的最小 YAML 示例](assets/engineering-artifacts.example.yaml)
+- 完整性校验工具：`python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py {check|update|hash}`；项目 CI 模板见 `assets/ci/`
 
 ## 输入与产出
 
@@ -44,8 +45,12 @@ allowed-tools: Read Glob Grep
 1. 对新建的受管理文件，用稳定且未占用的 `id`、`type`、项目相对 `path`、通用 `status` 和非空 `scope` 注册。需要修订号的类型补 `revision`，其余关联信息按需增加，参照 [registry-format.md](references/registry-format.md)。
 2. **受管理不等于已批准**：新草案可登记为 `draft`；`active` 不得由文件创建或测试存在自行推定。ADR 的 Proposed / Accepted / Superseded 等类型专属状态继续由 ADR 自身和其批准流程承载。
 3. 受管理文件创建、改名、移动、修订、取代、归档时，**同一逻辑变更**中维护登记表；移动保留 ID，旧文件需要追溯时保留适当关系。未经授权的读取/建议任务仅提出变更，不编辑项目文件。
-4. 外部 PDF/数据手册/原理图等原始文件不必改动；登记表给出位置及版本/修订识别，必要时用关联的原始证据记录补充哈希。
-5. 项目现有大量历史文件时，可逐步评估、补录；遗漏的管理类型文件作为一致性问题明确列出，不将 `artifacts: []` 伪称完整盘点，也不阻断无关开发。
+4. **登记表声明了 `integrity: sha256` 时**：修改受控文件后，在同一变更中运行 `registry_check.py update <id>` 写入新的 `sha256`（项目内若已有 `tools/registry_check.py` 则用项目副本），再运行 `check` 确认通过。规则：
+   - 只为**本次有意修改**的文件更新 hash；`check` 报出的、不是本次任务改动的不一致要报告给用户，不能为了让 CI 变绿而顺手更新。
+   - `superseded` / `archived` 文件已冻结：不要修改，也不要加 `--allow-frozen` 绕过；需要变更时提议新建修订并用 `supersedes` 取代。
+   - 更新 hash 不代表批准，汇报时不要把“hash 已更新”说成“已审核”。细则见 [registry-format.md 第 6 节](references/registry-format.md#6-完整性校验可选由项目启用)。
+5. 外部 PDF/数据手册/原理图等原始文件不必改动；登记表给出位置及版本/修订识别，必要时用关联的原始证据记录补充哈希。
+6. 项目现有大量历史文件时，可逐步评估、补录；遗漏的管理类型文件作为一致性问题明确列出，不将 `artifacts: []` 伪称完整盘点，也不阻断无关开发。
 
 ### 4. 处理双重信息与状态冲突
 
@@ -66,11 +71,12 @@ allowed-tools: Read Glob Grep
 - [ ] 类型由用途和项目声明确定，没有把所有 Markdown 或测试文件一律纳管。
 - [ ] `id/type/path/status/scope` 具备明确值，`revision` 遵循类型要求；未凭空编造批准状态。
 - [ ] 索引中的每个路径与真实文件或明确的“待创建”动作一致；未静默遗失或覆盖其他条目。
+- [ ] 启用了 `integrity` 的项目：本次修改的受控文件已更新 `sha256` 且 `check` 通过；未替与本任务无关或已冻结的文件更新 hash。
 - [ ] 类型专属批准状态与登记表映射不矛盾，无法确认的冲突已披露。
 - [ ] 未受管理的普通文件未被增加登记义务；项目既有规范与用户授权仍然优先。
 
 ## 约束
 
-- 原则指导与文件创建任务中的**附带登记**，不是独立审批、管理 Agent、自动迁移仓库或 CI 强制检查。
+- 原则指导与文件创建任务中的**附带登记**，不是独立审批、管理 Agent 或自动迁移仓库。通用约定不强制 CI；项目通过 `integrity: sha256` 自愿启用 hash 检查后，按第 3 节维护 hash。
 - 不擅自接受 ADR、批准协议、声称完成实板验证或更改原始外部资料。
 - 不将通用案例中的项目路径、硬件参数、批准人或 ID 规则当成真实项目事实；没有证据就明确待确认。

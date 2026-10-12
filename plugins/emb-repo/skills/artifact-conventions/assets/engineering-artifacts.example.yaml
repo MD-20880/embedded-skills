@@ -2,6 +2,8 @@
 schema_version: 1
 # 初次采用时若尚未盘点所有历史管理类型文件，可临时声明覆盖不完整：
 coverage: partial
+# 可选：启用完整性校验后，每个条目需要由 registry_check.py update 写入 sha256（见 registry-format.md 第 6 节）
+# integrity: sha256
 types:
   requirement:
     purpose: "Shared product/system requirements and acceptance goals"

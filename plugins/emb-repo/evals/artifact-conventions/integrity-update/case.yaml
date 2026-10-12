@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: integrity-update
+description: 项目启用了 hash 校验；修改 active 协议后，应在同一变更中用工具更新 sha256 并确认 check 通过，且不碰无关文件。
+tags: [artifact-conventions, positive, scaffold, integrity]
+context:
+  scaffold_script: setup.sh

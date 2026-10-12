@@ -26,6 +26,12 @@
       "title": "自动注入工程原则 / Inject engineering principles",
       "description": "开启时，在会话开始注入轻量工程原则，在子 Agent 启动时注入一行精简版；关闭后只能通过 /emb-repo:engineering-principles 手动使用。On: inject short principles at session start and a one-line digest for subagents.",
       "default": true
+    },
+    "integrity_reminders": {
+      "type": "boolean",
+      "title": "受控文件 hash 提醒 / Registry hash reminders",
+      "description": "开启时，在启用了 integrity: sha256 的项目中编辑受控文件后，提醒更新登记表 hash；编辑冻结文件时提醒撤销。只注入提示，不拦截。On: after editing a managed file, remind to update its registry hash.",
+      "default": true
     }
   }
 }

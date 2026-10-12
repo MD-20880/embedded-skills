@@ -8,15 +8,23 @@
 
 - `artifact-conventions`：基于用户确认的 Inform + Principles 管理形式，指导工程文件类型识别、项目 YAML 登记入口、稳定 ID、通用生命周期、适用范围和项目新增类型。
 - 登记表规范、类型目录、增量纳管与专业 Skill 集成指南及可复制示例；新增正向创建/核查与普通脚本反向评测。
+- **可选的受控文件 hash 校验**：登记表声明 `integrity: sha256` 后，每个条目记录 `sha256`。
+  - `scripts/registry_check.py`：`check`（CI 用，`--base` 检查冻结条目）、`update`（只改 `sha256` 行，保留注释和顺序）、`hash`；文本统一 LF、二进制按原始字节、Git LFS 指针直接取 oid。
+  - `draft` / `active` 修改后只需更新 hash；`superseded` / `archived` 冻结，已有 hash 时 `update` 默认拒绝改写（首次写入基线不受限）。
+  - `PostToolUse` 提醒 hook（`integrity_reminder.py`，仅标准库）：编辑受控文件后提示更新 hash，编辑冻结文件后提示撤销；插件选项 `integrity_reminders`（默认开启）。
+  - CI 与 CODEOWNERS 模板（`assets/ci/`）；hash 不等于审批，CODEOWNERS 由项目自选。
+  - 确定性自检覆盖上述行为；新增评测 `integrity-update`、`integrity-frozen`。
 
 ### 变更
 
-- `engineering-principles` 轻量核心新增“受管理文件有入口”原则；会话注入与子 Agent 摘要使用同一来源，其余工作仍不强制纳管。
+- `engineering-principles` 轻量核心新增“受管理文件有入口”原则（覆盖创建和修改）；会话注入与子 Agent 摘要使用同一来源，其余工作仍不强制纳管。
 - README 中补充受管理登记表与普通文档导航索引的区别。
 
 ### 状态
 
-- 评测（每个用例 3 次）：`create-managed-spec`、`registry-inconsistency`、`no-trigger` 均为 1.00；实际安装后验证：新建受管理文件会自动登记为 `draft`，新建普通脚本不改动登记表。
+- 评测（每个用例 3 次）：`create-managed-spec`、`registry-inconsistency`、`no-trigger`、`integrity-update`、`integrity-frozen` 均为 1.00。
+- 实际安装后验证：新建受管理文件会自动登记为 `draft`；新建普通脚本不改动登记表；在启用 hash 校验的项目中修改 active 协议后，hash 会被正确更新。
+- 说明：未加提醒 hook 时，“修改受控文件后更新 hash”的评测为 0/3，“不改冻结文件”为 0/3。仅靠 skill 描述无法可靠触发，因此改用 hook 做确定性提醒。
 
 ## [0.2.0] - 2026-10-09
 

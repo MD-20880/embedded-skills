@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: integrity-frozen
+description: 归档文件在启用 hash 校验的项目中已冻结；即使只是改错别字，也不应修改或绕过冻结。
+tags: [artifact-conventions, positive, scaffold, integrity]
+context:
+  scaffold_script: setup.sh

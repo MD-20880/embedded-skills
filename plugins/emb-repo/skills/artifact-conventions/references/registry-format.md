@@ -37,7 +37,7 @@ YAML 用于可读、可 diff、可由程序解析。文件一旦登记，说明�
 
 `scope` 推荐使用非空字符串列表，以 `["project"]` 表示全项目，或 `["product:alpha", "board:rev-b"]` 表示限定范围。范围待核实时显式标注 `["pending"]`，**不能把 pending 当成无限适用**；状态推进到 `active` 前需要确认范围。项目可自定义可机器识别的维度词表，不要求所有项目同一套板卡标识。
 
-可选字段：`revision`（按类型要求，不强制统一 SemVer）、`supersedes`、`source`、`owner`、`verified_by` 等；仅当实际有依据时记录。不要编造不存在的依赖关系或验收记录。
+可选字段：`revision`（按类型要求，不强制统一 SemVer）、`supersedes`、`source`、`owner`、`verified_by` 等；仅当实际有依据时记录。不要编造不存在的依赖关系或验收记录。项目启用完整性校验后，每个条目还有由工具写入的 `sha256`，见第 6 节。
 
 ## 3. 登记表与文档内信息的权威分层
 
@@ -66,3 +66,52 @@ YAML 用于可读、可 diff、可由程序解析。文件一旦登记，说明�
 5. 受管理类型的新文件是否漏登？是否误把普通文件加入管理？
 
 不在通用 Skill 中规定强制审批、CI Gate、完整迁移期限或特定项目的命名规则；需要更强约束时由项目按其实际管理能力自行采用。
+
+## 6. 完整性校验（可选，由项目启用）
+
+项目希望在 CI 中**形式化地发现受控文件被修改**时，在登记表顶层声明：
+
+```yaml
+schema_version: 1
+integrity: sha256          # 启用后，每个条目都必须有 sha256
+artifacts:
+  - id: SPEC-LINK-001
+    type: specification
+    path: docs/protocols/link-v1.md
+    status: active
+    scope: ["project"]
+    sha256: 3f9a…c21e      # 由 registry_check.py update 写入，不手填
+```
+
+未声明 `integrity` 的项目不受影响，仍按前几节轻量登记。
+
+### 6.1 hash 怎么算
+
+由 `scripts/registry_check.py` 计算，规则固定，保证不同机器结果一致：
+
+| 文件 | 计算方式 | 原因 |
+| --- | --- | --- |
+| Git LFS 指针文件 | 直接取指针里的 `oid sha256:` | CI 检出时通常没有 LFS 内容；该 oid 本来就是原文件的 sha256 |
+| LFS 跟踪的文件、含 NUL 字节的二进制文件（PDF、图片等） | 原始字节的 sha256 | 与 LFS oid 一致，不改变二进制内容 |
+| 其他文本文件 | 先把 CRLF / CR 统一为 LF，再算 sha256 | Windows（`autocrlf`）与 Linux 检出结果一致 |
+
+### 6.2 CI 检查什么
+
+`registry_check.py check --base <目标分支>`：
+
+| 检查 | 失败时 |
+| --- | --- |
+| 每个条目的 `path` 存在、`type` 已声明、`scope` 非空、`id` 不重复 | 登记表本身有误 |
+| 文件内容与 `sha256` 一致 | 受控文件被修改，但没有在登记表中留痕 |
+| 状态为 `superseded` / `archived` 的条目（以基线为准），`sha256` 未被改动、内容未变 | 冻结文件被修改；应新建修订并用 `supersedes` 取代 |
+
+按状态的要求：
+
+| 状态 | 文件内容变化时的要求 |
+| --- | --- |
+| `draft`、`active` | 在同一变更中运行 `registry_check.py update <id>` 更新 `sha256` |
+| `superseded`、`archived` | 冻结，不允许修改；已有 hash 时 `update` 默认拒绝改写（首次写入基线不受限），只有确需修正（如修复错误归档）时才加 `--allow-frozen`，并在 PR 中说明 |
+
+### 6.3 hash 不等于审批
+
+hash 变化只说明“受控文件变了”，**不说明改得对、也不说明已经批准**：任何人都能运行 `update`。它的作用是让每一次受控文件的改动都在 PR 的登记表 diff 中显式出现，便于评审。需要强制由特定的人把关时，再配合仓库的评审规则，例如为登记表设置 CODEOWNERS（模板见 `assets/ci/CODEOWNERS.example`）。类型专属的批准（ADR Accepted、协议批准）仍按第 3 节由专业流程负责。
