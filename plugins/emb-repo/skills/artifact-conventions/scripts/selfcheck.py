@@ -169,6 +169,83 @@ def main():
             h.get("command") == "python3" and h.get("args", [""])[0].endswith("integrity_reminder.py")
             for h in e.get("hooks", [])) for e in hooks), "hooks.json 应以 exec 形式为 Edit|Write 注册提醒")
 
+        # ---- PR #6 评审回归用例
+        # (1) 嵌套字段：source.sha256 与 source.id 不能被当成条目自己的字段
+        root4 = os.path.join(tmp, "nested")
+        write(root4, "docs/a.pdf", b"%PDF\0x")
+        write(root4, "docs/engineering-artifacts.yaml",
+              "integrity: sha256\ntypes:\n  reference: {purpose: r}\nartifacts:\n"
+              "  - type: reference\n    source:\n      id: VENDOR-DS\n      sha256: " + "1" * 64 + "\n"
+              "    id: REF-1\n    path: docs/a.pdf\n    status: active\n    scope: [project]\n")
+        r = run(root4, "update", "REF-1")
+        text4 = open(os.path.join(root4, "docs/engineering-artifacts.yaml"), encoding="utf-8").read()
+        check(r.returncode == 0 and "      sha256: " + "1" * 64 in text4, "update 不得改写嵌套的 source.sha256")
+        check(text4.count("\n    sha256: ") == 1, "update 应在条目这一层新增一行 sha256")
+        check(run(root4, "check").returncode == 0, "嵌套 source 不影响 check")
+        # 评审中的原始布局：id 在前，source 块在条目末尾
+        write(root4, "docs/engineering-artifacts.yaml",
+              "integrity: sha256\ntypes:\n  reference: {purpose: r}\nartifacts:\n"
+              "  - id: REF-1\n    type: reference\n    path: docs/a.pdf\n    status: active\n    scope: [project]\n"
+              "    source:\n      url: https://example.com/a.pdf\n      sha256: " + "1" * 64 + "\n")
+        run(root4, "update", "REF-1")
+        text4 = open(os.path.join(root4, "docs/engineering-artifacts.yaml"), encoding="utf-8").read()
+        check("      sha256: " + "1" * 64 in text4 and text4.count("\n    sha256: ") == 1,
+              "id 在前、source 在后时，update 也不得覆盖 source.sha256")
+        # sha256 写在条目第一行的情况
+        write(root4, "docs/engineering-artifacts.yaml",
+              "integrity: sha256\ntypes:\n  reference: {purpose: r}\nartifacts:\n"
+              "  - sha256: " + "0" * 64 + "\n    id: REF-1\n    type: reference\n    path: docs/a.pdf\n"
+              "    status: active\n    scope: [project]\n")
+        run(root4, "update", "REF-1")
+        check(run(root4, "check").returncode == 0, "sha256 为条目首个字段时 update 也应正确改写")
+
+        if has_git:
+            # (2) 基线中已冻结的条目被整条删除
+            root5 = os.path.join(tmp, "removed")
+            write(root5, "docs/old.md", "old\n")
+            write(root5, "docs/engineering-artifacts.yaml",
+                  "integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  - id: OLD-1\n"
+                  "    type: design\n    path: docs/old.md\n    status: archived\n    scope: [project]\n")
+            git(root5, "init", "-q")
+            run(root5, "update", "--all")
+            git(root5, "add", "-A")
+            git(root5, "commit", "-qm", "base")
+            write(root5, "docs/old.md", "old, edited\n")
+            write(root5, "docs/engineering-artifacts.yaml", "integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts: []\n")
+            r = run(root5, "check", "--base", "HEAD")
+            check(r.returncode == 1 and "OLD-1" in r.stdout and "删除" in r.stdout, "删除基线中已冻结的条目应失败")
+            # (3) 基线引用无效 → 报错退出，不能静默通过
+            git(root5, "checkout", "-q", "--", ".")
+            r = run(root5, "check", "--base", "origin/not-fetched")
+            check(r.returncode == 2 and "无法读取基线" in r.stderr, "无效基线应以退出码 2 报错")
+            # 基线有效但其中还没有登记表（首次启用）→ 提示后继续
+            root6 = os.path.join(tmp, "first-adoption")
+            write(root6, "README.md", "x\n")
+            git(root6, "init", "-q")
+            git(root6, "add", "-A")
+            git(root6, "commit", "-qm", "before registry")
+            write(root6, "docs/d.md", "d\n")
+            write(root6, "docs/engineering-artifacts.yaml",
+                  "integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  - id: D-1\n"
+                  "    type: design\n    path: docs/d.md\n    status: draft\n    scope: [project]\n")
+            run(root6, "update", "--all")
+            r = run(root6, "check", "--base", "HEAD")
+            check(r.returncode == 0 and "首次启用" in r.stdout, "首次启用时基线没有登记表应提示并通过")
+
+        # (4) hook：多行 scope 列表、字段顺序不同、嵌套映射都不影响状态识别
+        root7 = os.path.join(tmp, "hook-nested")
+        write(root7, "docs/old.md", "old\n")
+        write(root7, "docs/new.md", "new\n")
+        write(root7, "docs/engineering-artifacts.yaml",
+              "integrity: sha256\nartifacts:\n  - id: OLD-1\n    path: docs/old.md\n    type: design\n"
+              "    scope:\n      - project\n      - board:rev-a\n    source:\n      status: active\n"
+              "    status: archived\n  - path: docs/new.md\n    scope:\n      - project\n"
+              "    id: NEW-1\n    status: draft\n")
+        msg = remind(root7, "docs/old.md")[1]
+        check("OLD-1" in msg and "archived" in msg and "撤销" in msg, "多行 scope 之后的 status 应归属正确的条目")
+        msg = remind(root7, "docs/new.md")[1]
+        check("NEW-1" in msg and "draft" in msg and "update NEW-1" in msg, "字段顺序不同的条目也应识别 id 与状态")
+
         root3 = os.path.join(tmp, "optout")
         write(root3, "docs/engineering-artifacts.yaml", "types: {}\nartifacts: []\n")
         r = run(root3, "check")
@@ -184,7 +261,7 @@ def main():
         print("FAIL " + f)
     if failures:
         return 1
-    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, reminders")
+    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, reminders, review regressions")
     return 0
 
 

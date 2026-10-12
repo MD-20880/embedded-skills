@@ -42,23 +42,38 @@ def scalar(value):
 
 
 def scan(text):
-    """Minimal line scan of the registry: (integrity enabled?, [{id, path, status}])."""
+    """Minimal line scan of the registry: (integrity enabled?, [{id, path, status}]).
+
+    Entry boundaries come from the indent of the first item under `artifacts:`;
+    only keys at the entry's own level are read, so nested lists or mappings
+    (a multi-line `scope:`, a `source:` block) never start a new entry or
+    overwrite its fields.
+    """
     integrity = bool(re.search(r"^integrity\s*:\s*[\"']?sha256[\"']?\s*(#.*)?$", text, re.M))
     items, current, in_arts = [], None, False
+    item_indent = key_col = None
     for line in text.splitlines():
         if re.match(r"^artifacts\s*:", line):
             in_arts = True
             continue
         if in_arts and re.match(r"^[^\s#-]", line):
             in_arts = False
-        if not in_arts:
+        if not in_arts or not line.strip() or line.lstrip().startswith("#"):
             continue
-        m = re.match(r"^\s*(-\s+)?(id|path|status)\s*:\s*(.+)$", line)
-        if re.match(r"^\s*-\s+", line):
+        dash = re.match(r"^(\s*)-\s+(.*)$", line)
+        if dash and (item_indent is None or len(dash.group(1)) == item_indent):
+            item_indent = len(dash.group(1))
+            key_col = dash.start(2)
             current = {}
             items.append(current)
-        if m and current is not None:
-            current[m.group(2)] = scalar(m.group(3))
+            rest = dash.group(2)
+        elif current is not None and len(line) - len(line.lstrip()) == key_col:
+            rest = line.strip()
+        else:
+            continue  # deeper (nested) content
+        m = re.match(r"^(id|path|status)\s*:\s*(.+)$", rest)
+        if m:
+            current[m.group(1)] = scalar(m.group(2))
     return integrity, items
 
 

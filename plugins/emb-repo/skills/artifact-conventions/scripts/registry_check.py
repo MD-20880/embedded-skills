@@ -14,7 +14,8 @@ Usage:
 check   Every entry's path exists, its type is declared, ids are unique, and
         the file content matches the recorded sha256. With --base REF (for
         example origin/main in a PR), entries that were already superseded or
-        archived at REF must keep the same sha256: their content is frozen.
+        archived at REF must still be listed and keep the same sha256: their
+        content is frozen. An unreadable REF is an error, never a silent skip.
 update  Recompute and write sha256 for the given ids (or --all). Refuses to
         change the hash of a superseded / archived entry that already has one,
         unless --allow-frozen (writing a first baseline hash is allowed). Only the
@@ -122,8 +123,13 @@ def cmd_check(args):
     seen = {}
     base_hash = {}
     if args.base:
+        if git(args.root, "rev-parse", "--verify", "--quiet", f"{args.base}^{{commit}}") is None:
+            die(f"无法读取基线 `{args.base}`：引用不存在、未 fetch，或当前目录不是 git 仓库。"
+                "基线无效时不能跳过冻结检查；请先 fetch 目标分支（CI 中 checkout 需 fetch-depth: 0）")
         old = git(args.root, "show", f"{args.base}:{args.registry}")
-        if old is not None:
+        if old is None:
+            print(f"提示：基线 {args.base} 中没有 {args.registry}（首次启用），跳过冻结比较。")
+        else:
             for e in entries(load_yaml(old, f"{args.base}:{args.registry}")):
                 if e.get("status") in FROZEN and e.get("id"):
                     base_hash[e["id"]] = e.get("sha256")
@@ -156,6 +162,10 @@ def cmd_check(args):
             else:
                 problems.append(f"{label}: 内容与登记的 sha256 不一致（{path}）；"
                                 f"如属有意修改，运行 `update {aid}` 并在同一变更中提交")
+    current_ids = {e.get("id") for e in entries(data)}
+    for aid in sorted(set(base_hash) - current_ids):
+        problems.append(f"{aid}: 基线中已冻结的条目从登记表中被删除；冻结条目须保留以供追溯，"
+                        "若文件已不再需要，保持其状态为 archived 即可")
     for p in problems:
         print(f"FAIL {p}")
     n = len(entries(data))
@@ -166,6 +176,17 @@ def cmd_check(args):
 # ------------------------------------------------------------------ update
 
 ITEM = re.compile(r"^(\s*)-\s+")
+
+
+def top_key(line, key, key_indent, first):
+    """Match `key:` at the entry's own level: on the item's dash line, or at key_indent.
+
+    Nested mappings (e.g. `source: {sha256: ...}` written as a block) sit deeper
+    and must never be read or rewritten as the entry's own fields.
+    """
+    if first:
+        return re.match(rf"^\s*-\s+{key}\s*:\s*(.*)$", line)
+    return re.match(rf"^ {{{key_indent}}}{key}\s*:\s*(.*)$", line)
 
 
 def entry_blocks(lines):
@@ -194,9 +215,13 @@ def entry_blocks(lines):
                 if ind <= dash_indent:
                     break
             j += 1
-        block = "".join(lines[i:j])
-        idm = re.search(r"(?:^|\n)\s*-?\s*id\s*:\s*[\"']?([^\"'\s#]+)", block)
-        yield i, j, key_indent, idm.group(1) if idm else None
+        aid = None
+        for k in range(i, j):
+            idm = top_key(lines[k], "id", key_indent, k == i)
+            if idm:
+                aid = idm.group(1).split(" #", 1)[0].strip().strip("\"'") or None
+                break
+        yield i, j, key_indent, aid
         i = j
 
 
@@ -227,11 +252,16 @@ def cmd_update(args):
         new = f"{' ' * key_indent}sha256: {file_hash(args.root, path)}\n"
         block = lines[start:end]
         for k, line in enumerate(block):
-            if re.match(r"^\s*sha256\s*:", line):
-                block[k] = new
+            if top_key(line, "sha256", key_indent, k == 0):
+                if k == 0:  # sha256 written as the item's first key
+                    block[k] = line[:line.index("-")] + "- " + new.lstrip()
+                else:
+                    block[k] = new
                 break
         else:
-            pos = next((k + 1 for k, line in enumerate(block) if re.match(r"^\s*-?\s*path\s*:", line)), len(block))
+            pos = next((k + 1 for k, line in enumerate(block) if top_key(line, "path", key_indent, k == 0)), None)
+            if pos is None:  # no top-level path line: append after the entry's last line with content
+                pos = max(k for k, line in enumerate(block) if line.strip()) + 1
             block.insert(pos, new)
         lines[start:end] = block
         updated.append(aid)
