@@ -73,10 +73,27 @@ def load_yaml(text, where):
 
 
 def git(root, *args):
+    """Run git; return stdout decoded as UTF-8, or None if git fails.
+
+    Output is read as bytes and decoded explicitly: with text=True Python would
+    use the locale encoding (e.g. cp936 / GBK on Chinese Windows) and fail on
+    UTF-8 registries that contain Chinese comments.
+    """
     try:
-        return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True).stdout
+        out = subprocess.run(["git", *args], cwd=root, capture_output=True, check=True).stdout
     except (OSError, subprocess.CalledProcessError):
         return None
+    try:
+        return out.decode("utf-8")
+    except UnicodeDecodeError:
+        die(f"git {' '.join(args)} 的输出不是合法的 UTF-8；登记表必须使用 UTF-8 编码")
+
+
+def git_ok(root, *args):
+    try:
+        return subprocess.run(["git", *args], cwd=root, capture_output=True).returncode == 0
+    except OSError:
+        return False
 
 
 def lfs_tracked(root, rel):
@@ -126,10 +143,14 @@ def cmd_check(args):
         if git(args.root, "rev-parse", "--verify", "--quiet", f"{args.base}^{{commit}}") is None:
             die(f"无法读取基线 `{args.base}`：引用不存在、未 fetch，或当前目录不是 git 仓库。"
                 "基线无效时不能跳过冻结检查；请先 fetch 目标分支（CI 中 checkout 需 fetch-depth: 0）")
-        old = git(args.root, "show", f"{args.base}:{args.registry}")
-        if old is None:
+        if not git_ok(args.root, "cat-file", "-e", f"{args.base}:{args.registry}"):
+            old = None
             print(f"提示：基线 {args.base} 中没有 {args.registry}（首次启用），跳过冻结比较。")
         else:
+            old = git(args.root, "show", f"{args.base}:{args.registry}")
+            if old is None:
+                die(f"无法读取基线中的登记表 {args.base}:{args.registry}；不能跳过冻结检查")
+        if old is not None:
             for e in entries(load_yaml(old, f"{args.base}:{args.registry}")):
                 if e.get("status") in FROZEN and e.get("id"):
                     base_hash[e["id"]] = e.get("sha256")
@@ -237,7 +258,7 @@ def cmd_update(args):
         if t not in by_id:
             die(f"登记表中没有 id `{t}`")
     lines = text.splitlines(keepends=True)
-    updated, skipped = [], []
+    updated, skipped, expected = [], [], {}
     for start, end, key_indent, aid in reversed(list(entry_blocks(lines))):
         if aid not in targets:
             continue
@@ -262,11 +283,29 @@ def cmd_update(args):
             pos = next((k + 1 for k, line in enumerate(block) if top_key(line, "path", key_indent, k == 0)), None)
             if pos is None:  # no top-level path line: append after the entry's last line with content
                 pos = max(k for k, line in enumerate(block) if line.strip()) + 1
+            if not block[pos - 1].endswith("\n"):  # e.g. last line of a file without a trailing newline
+                block[pos - 1] += "\n"
             block.insert(pos, new)
         lines[start:end] = block
         updated.append(aid)
+        expected[aid] = new.split(":", 1)[1].strip()
+
+    handled = set(updated) | {s.split("（", 1)[0] for s in skipped}
+    unsupported = [t for t in targets if t not in handled]
+    if unsupported:
+        for t in unsupported:
+            print(f"FAIL {t}: 无法定位该条目的块状写法（例如单行 flow-style `- {{id: …, path: …}}`），未更新。"
+                  "请把该条目改为每个字段一行的写法后重试")
+        print("登记表未修改。")
+        return 1
+
+    new_text = "".join(lines)
+    result = {e.get("id"): e for e in entries(load_yaml(new_text, f"{args.registry}（更新后）"))}
+    broken = [aid for aid, h in expected.items() if str((result.get(aid) or {}).get("sha256")) != h]
+    if broken or set(result) != set(by_id):
+        die(f"更新后的登记表校验失败（{', '.join(broken) or '条目集合发生变化'}），登记表未修改；请报告此问题")
     with open(os.path.join(args.root, args.registry), "w", encoding="utf-8") as f:
-        f.write("".join(lines))
+        f.write(new_text)
     for aid in reversed(updated):
         print(f"已更新 {aid}")
     for s in skipped:
@@ -281,6 +320,11 @@ def cmd_hash(args):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", action="version", version=f"registry_check {TOOL_VERSION}")
     sub = ap.add_subparsers(dest="cmd", required=True)

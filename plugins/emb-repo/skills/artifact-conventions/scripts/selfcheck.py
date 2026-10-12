@@ -70,6 +70,20 @@ def remind(root, rel, tool="Edit", option=None, env_pyyaml=True):
     return r.returncode, json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
 
 
+def gbk_env(tmp):
+    """Environment whose locale encoding is GBK (like cp936 on Chinese Windows), or None if unavailable."""
+    if not shutil.which("localedef"):
+        return None
+    locpath = os.path.join(tmp, "locales")
+    os.makedirs(locpath, exist_ok=True)
+    subprocess.run(["localedef", "-i", "zh_CN", "-f", "GBK", os.path.join(locpath, "zh_CN.GBK")],
+                   capture_output=True)
+    env = dict(os.environ, LOCPATH=locpath, LC_ALL="zh_CN.GBK", PYTHONUTF8="0")
+    probe = subprocess.run([sys.executable, "-c", "import locale;print(locale.getpreferredencoding(False))"],
+                           capture_output=True, text=True, env=env)
+    return env if probe.stdout.strip().upper() in ("GBK", "CP936") else None
+
+
 def check(cond, msg):
     if not cond:
         failures.append(msg)
@@ -246,6 +260,48 @@ def main():
         msg = remind(root7, "docs/new.md")[1]
         check("NEW-1" in msg and "draft" in msg and "update NEW-1" in msg, "字段顺序不同的条目也应识别 id 与状态")
 
+        # ---- PR #6 第二轮评审回归用例
+        # (1) 本地编码为 GBK 时，读取含中文注释的基线登记表不得失败或被当成“首次启用”
+        if has_git:
+            root8 = os.path.join(tmp, "gbk")
+            write(root8, "docs/a.md", "old\n")
+            write(root8, "docs/engineering-artifacts.yaml",
+                  "integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  # 当前协议\n  - id: A\n"
+                  "    type: design\n    path: docs/a.md\n    status: archived\n    scope: [project]\n")
+            git(root8, "init", "-q")
+            run(root8, "update", "A")
+            git(root8, "add", "-A")
+            git(root8, "commit", "-qm", "base")
+            write(root8, "docs/a.md", "old, edited\n")
+            run(root8, "update", "A", "--allow-frozen")
+            env = gbk_env(tmp)
+            if env is None:
+                print("NOTE 未能生成 GBK locale，跳过本地编码回归用例")
+            else:
+                r = subprocess.run([sys.executable, TOOL, "check", "--base", "HEAD", "--root", root8],
+                                   capture_output=True, env=env)
+                check(r.returncode == 1 and b"Traceback" not in r.stderr,
+                      "GBK 本地编码下也应正确读取基线并发现冻结条目被改")
+        # (2) 末尾没有换行的登记表：update 不得把 sha256 接在上一行后面
+        root9 = os.path.join(tmp, "no-eol")
+        write(root9, "docs/a.md", "a\n")
+        write(root9, "docs/engineering-artifacts.yaml",
+              "integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  - id: A\n    type: design\n"
+              "    status: draft\n    scope: [project]\n    path: docs/a.md")
+        r = run(root9, "update", "A")
+        check(r.returncode == 0 and run(root9, "check").returncode == 0, "末尾无换行时 update 后登记表仍应合法且通过 check")
+        # (3) flow-style 条目：update 不得静默成功，登记表保持不变；hook 仍能识别
+        root10 = os.path.join(tmp, "flow")
+        write(root10, "docs/old.md", "old\n")
+        flow = ("integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n"
+                "  - {id: OLD-1, path: docs/old.md, type: design, status: archived, scope: [project, board]}\n")
+        write(root10, "docs/engineering-artifacts.yaml", flow)
+        r = run(root10, "update", "OLD-1")
+        after = open(os.path.join(root10, "docs/engineering-artifacts.yaml"), encoding="utf-8").read()
+        check(r.returncode == 1 and "OLD-1" in r.stdout and after == flow, "flow-style 条目应明确报错且不修改登记表")
+        msg = remind(root10, "docs/old.md")[1]
+        check("OLD-1" in msg and "archived" in msg, "hook 应能识别单行 flow-style 条目")
+
         root3 = os.path.join(tmp, "optout")
         write(root3, "docs/engineering-artifacts.yaml", "types: {}\nartifacts: []\n")
         r = run(root3, "check")
@@ -261,7 +317,7 @@ def main():
         print("FAIL " + f)
     if failures:
         return 1
-    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, reminders, review regressions")
+    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, reminders, review regressions (2 rounds)")
     return 0
 
 

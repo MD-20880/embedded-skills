@@ -71,6 +71,10 @@ def scan(text):
             rest = line.strip()
         else:
             continue  # deeper (nested) content
+        if rest.startswith("{"):  # single-line flow mapping: - {id: X, path: Y, status: Z}
+            for key, value in re.findall(r"(?:^\{|,)\s*(id|path|status)\s*:\s*([^,}]+)", rest):
+                current[key] = scalar(value)
+            continue
         m = re.match(r"^(id|path|status)\s*:\s*(.+)$", rest)
         if m:
             current[m.group(1)] = scalar(m.group(2))

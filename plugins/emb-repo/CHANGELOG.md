@@ -9,7 +9,7 @@
 - `artifact-conventions`：基于用户确认的 Inform + Principles 管理形式，指导工程文件类型识别、项目 YAML 登记入口、稳定 ID、通用生命周期、适用范围和项目新增类型。
 - 登记表规范、类型目录、增量纳管与专业 Skill 集成指南及可复制示例；新增正向创建/核查与普通脚本反向评测。
 - **可选的受控文件 hash 校验**：登记表声明 `integrity: sha256` 后，每个条目记录 `sha256`。
-  - `scripts/registry_check.py`：`check`（CI 用；`--base` 检查冻结条目是否被修改或删除，基线无法读取时报错而非跳过）、`update`（只改条目这一层的 `sha256` 行，不碰 `source.sha256` 等嵌套字段，保留注释和顺序）、`hash`；文本统一 LF、二进制按原始字节、Git LFS 指针直接取 oid。
+  - `scripts/registry_check.py`：`check`（CI 用；`--base` 检查冻结条目是否被修改或删除，基线无法读取时报错而非跳过）、`update`（只改条目这一层的 `sha256` 行，不碰 `source.sha256` 等嵌套字段，保留注释和顺序；写盘前重新解析并核对每个请求的 hash，任何条目未能更新时不写盘并以非零退出）、`hash`；git 输出一律按 UTF-8 解码，不受本地编码影响；文本统一 LF、二进制按原始字节、Git LFS 指针直接取 oid。
   - `draft` / `active` 修改后只需更新 hash；`superseded` / `archived` 冻结，已有 hash 时 `update` 默认拒绝改写（首次写入基线不受限）。
   - `PostToolUse` 提醒 hook（`integrity_reminder.py`，仅标准库）：编辑受控文件后提示更新 hash，编辑冻结文件后提示撤销；插件选项 `integrity_reminders`（默认开启）。
   - CI 与 CODEOWNERS 模板（`assets/ci/`）；hash 不等于审批，CODEOWNERS 由项目自选。
