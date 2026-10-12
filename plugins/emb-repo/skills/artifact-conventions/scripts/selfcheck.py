@@ -302,6 +302,16 @@ def main():
         msg = remind(root10, "docs/old.md")[1]
         check("OLD-1" in msg and "archived" in msg, "hook 应能识别单行 flow-style 条目")
 
+        # 带 UTF-8 BOM 的登记表（Windows 记事本常见）：hook 仍应识别 integrity 并提醒
+        root11 = os.path.join(tmp, "bom")
+        write(root11, "docs/a.md", "a\n")
+        write(root11, "docs/engineering-artifacts.yaml",
+              b"\xef\xbb\xbfintegrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  - id: A\n"
+              b"    type: design\n    path: docs/a.md\n    status: draft\n    scope: [project]\n")
+        check("update A" in remind(root11, "docs/a.md")[1], "登记表带 BOM 时 hook 仍应提醒")
+        check(run(root11, "update", "A").returncode == 0 and run(root11, "check").returncode == 0,
+              "登记表带 BOM 时 update / check 应正常")
+
         root3 = os.path.join(tmp, "optout")
         write(root3, "docs/engineering-artifacts.yaml", "types: {}\nartifacts: []\n")
         r = run(root3, "check")

@@ -99,7 +99,7 @@ def main():
     if not registry or os.path.abspath(file_path) == os.path.abspath(registry):
         return 0  # no registry, or the registry itself was edited
     try:
-        with open(registry, encoding="utf-8") as f:
+        with open(registry, encoding="utf-8-sig") as f:  # tolerate a BOM (e.g. saved by Windows Notepad)
             integrity, items = scan(f.read())
     except (OSError, UnicodeDecodeError):
         return 0
