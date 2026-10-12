@@ -48,7 +48,7 @@ claude plugin marketplace add MD-20880/embedded-skills --scope project
 
 | 插件 | 领域 | 已发布 skill | 说明 |
 | --- | --- | --- | --- |
-| [emb-repo](plugins/emb-repo/README.md) | 项目基础与 Repo 管理 | `project-profile`、`engineering-principles` | 默认工程原则（可关闭）、项目画像、目录与构建约定、文档索引、版本发布 |
+| [emb-repo](plugins/emb-repo/README.md) | 项目基础与 Repo 管理 | `project-profile`、`engineering-principles`、`artifact-conventions` | 默认工程原则（可关闭）、项目画像、目录与构建约定、文档索引、版本发布 |
 | [emb-design](plugins/emb-design/README.md) | 方案设计 | — | 需求拆解、方案对比与选型、资源预算、ADR |
 | [emb-drivers](plugins/emb-drivers/README.md) | 外设驱动开发 | — | 从手册到驱动、寄存器映射、跨 MCU 移植 |
 | [emb-bringup](plugins/emb-bringup/README.md) | 板级 bring-up 与验证 | — | 上电清单、验证程序、软硬件问题定位、验证记录 |

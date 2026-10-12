@@ -1,8 +1,8 @@
 {
   "name": "emb-repo",
   "displayName": "Embedded Repo",
-  "version": "0.2.0",
-  "description": "嵌入式项目基础：工程默认原则、项目画像、文档/构建目录和版本管理。Embedded project foundations: default engineering principles, project profile and repository management.",
+  "version": "0.3.0",
+  "description": "嵌入式项目基础：工程默认原则、受管理文件登记约定、项目画像和仓库管理。Embedded foundations: principles, engineering artifact registry conventions, project profile, repo management.",
   "author": {
     "name": "MD-20880"
   },
@@ -16,7 +16,9 @@
     "documentation",
     "engineering-principles",
     "knowledge",
-    "adr"
+    "adr",
+    "artifacts",
+    "registry"
   ],
   "userConfig": {
     "inject_principles": {
