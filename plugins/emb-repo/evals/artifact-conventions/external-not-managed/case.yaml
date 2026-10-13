@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: external-not-managed
+description: 用户要求把只存在于飞书的协议文档登记为受控文件；应说明需先把文件放入仓库，不得把外部链接登记成受管理条目。
+tags: [artifact-conventions, positive, scaffold]
+context:
+  scaffold_script: setup.sh

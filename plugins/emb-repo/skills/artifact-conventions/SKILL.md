@@ -1,7 +1,7 @@
 ---
 name: artifact-conventions
 description: 在创建、修改或整理工程文件时，辨别项目声明的受管理工程资产类型，说明 YAML 登记索引、稳定身份、状态、范围与生命周期的轻量约定，并指出需同步登记的文件。Recognize managed engineering artifact types and maintain a lightweight project registry of their identity and lifecycle.
-when_to_use: 创建工程文档、增加协议规范、更新设计方案、登记 ADR、收录验证报告、迁移受管理文件、建立工程文件索引、整理项目的受管理资产类型时使用；"create a design document", "register an engineering artifact", "manage technical documents". 普通源码、临时脚本、随手笔记等不需要单独触发此 Skill。
+when_to_use: 创建工程文档、增加协议规范、更新设计方案、登记 ADR、收录验证报告、迁移受管理文件、建立工程文件索引、整理项目的受管理资产类型、把文件设为受控或纳入文控时使用；"create a design document", "register an engineering artifact", "manage technical documents", "put a document under document control". 普通源码、临时脚本、随手笔记等不需要单独触发此 Skill。
 argument-hint: "[新建/修改的文件或工程文件管理问题]"
 allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *)
 ---
@@ -9,6 +9,8 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
 # 工程文件管理约定（artifact-conventions）
 
 这是 **Inform + Principles** Skill，不是所有文件的生成器或审批器。创建或变更工程文件时，先判断它**在当前项目中是否属于受管理类型**；如果是，保持文件与项目 YAML 工程资产登记表一致；如果不是，不添加额外登记、审批或元数据要求。
+
+**纳管的前提是文件在本仓库中。** 登记表只登记仓库内的文件；飞书、网盘、在线表格、厂商网站等外部系统中的内容不在本仓库的管理范围内，被讨论或引用过也不算。需要纳管时，由负责人把文件或其导出快照提交进仓库，再登记。未经用户明确要求，不代为从外部系统抓取内容入库，也不把外部链接登记为受管理条目；外部链接可以作为来源说明，写在受管理文件的正文或条目的 `source` 字段中。
 
 - [登记表格式、字段、权威归属与生命周期](references/registry-format.md)（管理格式权威说明）
 - [内置类型与项目扩展、非纳管边界](references/type-guide.md)
@@ -49,7 +51,7 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
    - 只为**本次有意修改**的文件更新 hash；`check` 报出的、不是本次任务改动的不一致要报告给用户，不能为了让 CI 变绿而顺手更新。
    - `superseded` / `archived` 文件已冻结：不要修改，也不要加 `--allow-frozen` 绕过；需要变更时提议新建修订并用 `supersedes` 取代。
    - 更新 hash 不代表批准，汇报时不要把“hash 已更新”说成“已审核”。细则见 [registry-format.md 第 6 节](references/registry-format.md#6-完整性校验可选由项目启用)。
-5. 外部 PDF/数据手册/原理图等原始文件不必改动；登记表给出位置及版本/修订识别，必要时用关联的原始证据记录补充哈希。
+5. 外部资料（PDF、数据手册、原理图等）纳管时，原件放入仓库，登记其路径及厂商版本/修订号，不改动原件内容；原始下载地址等来源信息可记在 `source` 字段，必要时用关联的原始证据记录补充哈希。只存在于仓库外的资料不登记（见开头的纳管边界）。
 6. 项目现有大量历史文件时，可逐步评估、补录；遗漏的管理类型文件作为一致性问题明确列出，不将 `artifacts: []` 伪称完整盘点，也不阻断无关开发。
 
 ### 4. 处理双重信息与状态冲突
@@ -68,6 +70,7 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
 ## 自检
 
 - [ ] 本项目至少有一个**明确的**登记入口（若缺失，已指出，而非假称存在）。
+- [ ] 登记的条目都是仓库中的文件；没有把外部系统的链接或内容登记为受管理条目。
 - [ ] 类型由用途和项目声明确定，没有把所有 Markdown 或测试文件一律纳管。
 - [ ] `id/type/path/status/scope` 具备明确值，`revision` 遵循类型要求；未凭空编造批准状态。
 - [ ] 索引中的每个路径与真实文件或明确的“待创建”动作一致；未静默遗失或覆盖其他条目。

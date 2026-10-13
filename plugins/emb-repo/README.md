@@ -55,6 +55,8 @@ hook 以 exec 形式调用 `python3`（不经过 shell）。Windows 上若只有
 
 登记表管理稳定 ID、类型、相对路径、通用生命周期和适用范围；专业文件管理内容、专属批准状态及证据。可用 [示例](skills/artifact-conventions/assets/engineering-artifacts.example.yaml) 从零建立，但不要把示例当成已部署的项目事实。登记表不同于普通文档导航索引；细节见 `/emb-repo:artifact-conventions`。
 
+**只有仓库中的文件才能登记。** 飞书、网盘、在线表格等外部系统中的内容不在管理范围内；需要纳管时，由负责人把文件或其导出快照提交进仓库后再登记，原链接可记在条目的 `source` 字段。
+
 ### 可选：受控文件 hash 校验
 
 项目在登记表顶层声明 `integrity: sha256` 后，每个条目记录文件内容的 sha256，CI 用 `registry_check.py check --base <目标分支>` 发现受控文件的修改：
