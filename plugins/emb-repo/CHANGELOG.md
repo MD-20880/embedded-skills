@@ -2,6 +2,19 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] - 2026-10-13
+
+### 新增
+
+- `registry_check.py history <id>`：按提交从早到晚列出一个受控条目的变化——登记、内容哈希、`revision`、`status`、`path` 变化、移出登记表，以及登记前对该文件的提交；改了文件却没更新登记的提交会被标出，`path` 变过时沿历次路径追溯。只读。
+- `registry_check.py baseline [--ref <引用>]`：导出某个提交或标签上的受控基线（编号、类型、状态、版本、范围、路径、哈希），并核对该引用上的文件内容是否与登记哈希一致，不一致时退出码为 1。用于阶段发布时留存基线。只读。
+- 两个命令都支持 `--markdown`。`registry-format.md` 新增第 6.3 节“追溯与基线导出”（原 6.3 顺延为 6.4）；`adoption-and-integration.md` 日常使用、`SKILL.md` 工具说明与插件 README 同步；`allowed-tools` 增加这两个只读命令。
+- `selfcheck.py` 在临时 git 仓库中覆盖 history / baseline：登记前提交、未更新登记的改动、版本与状态变化、改路径、`--ref` 上的哈希不一致、无效 id 与引用。
+
+### 变更
+
+- `registry_check.py` 工具版本 1.0 → 1.1。`check`、`update`、`hash` 的行为不变；已复制到项目中的旧版本可继续使用，需要新命令时整体替换。
+
 ## [0.4.0] - 2026-10-13
 
 ### 新增
