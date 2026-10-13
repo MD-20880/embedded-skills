@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""个人热点：把某人近期参与最多的 open issue 排到前面（method.md 第 10.1 节）。
+"""个人热点：把某人最近点了“关注”的 open issue 排到前面，再慢慢降温（method.md 第 10.1 节）。
 
-只读：通过 GitHub GraphQL 读取 open issue 的评论、交叉引用、提交引用和指派事件，打分后输出到标准输出。
+只读：通过 GitHub GraphQL 读取 open issue 的关注表情、评论、交叉引用、提交引用和指派事件，打分后输出到标准输出。
 不读 issue 的 updatedAt：批量改标签、改模板会刷新它，排序因此失真。
 
-打分：窗口（默认 14 天）内每个事件按“权重 × 0.5^(距今天数 / 半衰期)”累加，半衰期默认 3 天。
+打分：每个事件按“权重 × 0.5^(距今天数 / 半衰期)”累加。
+
+主信号是“关注”：本人在 issue 正文上点的表情（默认 👀，--focus-reaction 可改），权重 10，
+半衰期 7 天，看 60 天内的。取消后再点一次，时间就更新为新的，issue 重新升温。
+
+其余活动是次要信号，看 14 天内的，半衰期 3 天：
 
   事件                                   权重
   本人新开 issue                           3
@@ -34,6 +39,7 @@ import subprocess
 import sys
 import urllib.request
 
+FOCUS_WEIGHT = 10
 WEIGHTS = {
     "opened": 3,
     "comment_self": 3,
@@ -45,8 +51,9 @@ WEIGHTS = {
     "assigned": 2,
 }
 ASSIGNEE_BONUS = 1
-SELF_KINDS = {"opened", "comment_self", "mention", "pr_self", "commit_self", "assigned"}
+SELF_KINDS = {"focus", "opened", "comment_self", "mention", "pr_self", "commit_self", "assigned"}
 LABELS = {
+    "focus": "关注",
     "opened": "新开",
     "comment_self": "评论",
     "mention": "@你",
@@ -58,7 +65,8 @@ LABELS = {
 }
 
 QUERY = """
-query($owner: String!, $name: String!, $after: String, $since: DateTime!) {
+query($owner: String!, $name: String!, $after: String, $since: DateTime!,
+      $reaction: ReactionContent!) {
   viewer { login }
   repository(owner: $owner, name: $name) {
     issues(states: OPEN, first: 50, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
@@ -67,6 +75,7 @@ query($owner: String!, $name: String!, $after: String, $since: DateTime!) {
         number title url createdAt
         author { login }
         assignees(first: 10) { nodes { login } }
+        reactions(content: $reaction, last: 50) { nodes { createdAt user { login } } }
         comments(last: 50) { nodes { createdAt body author { login } } }
         timelineItems(last: 50, since: $since,
                       itemTypes: [CROSS_REFERENCED_EVENT, REFERENCED_EVENT, ASSIGNED_EVENT]) {
@@ -102,12 +111,13 @@ def token():
         sys.exit("FAIL 没有 GitHub 凭据：设置 GITHUB_TOKEN，或先 gh auth login")
 
 
-def fetch(repo, since):
+def fetch(repo, since, reaction):
     owner, name = repo.split("/", 1)
     tok, after, issues, viewer = token(), None, [], None
     while True:
         body = json.dumps({"query": QUERY, "variables": {
-            "owner": owner, "name": name, "after": after, "since": since.isoformat()}})
+            "owner": owner, "name": name, "after": after, "since": since.isoformat(),
+            "reaction": reaction}})
         req = urllib.request.Request("https://api.github.com/graphql", data=body.encode(),
                                      headers={"Authorization": f"bearer {tok}",
                                               "Content-Type": "application/json"})
@@ -130,6 +140,9 @@ def login(node):
 def events(issue, user):
     """把一个 issue 的原始数据转成 (时间, 类型, 说明参数) 列表。"""
     out = []
+    for r in (issue.get("reactions") or {}).get("nodes", []):
+        if login(r.get("user")) == user:
+            out.append((r["createdAt"], "focus", {}))
     if login(issue.get("author")) == user:
         out.append((issue["createdAt"], "opened", {}))
     mention = re.compile(rf"@{re.escape(user)}\b", re.I)
@@ -154,14 +167,18 @@ def events(issue, user):
     return out
 
 
-def score(issue, user, now, days, half_life):
+def score(issue, user, now, cfg):
     mine = total = 0.0
     recent = []
     for when, kind, args in events(issue, user):
         age = (now - parse_time(when)).total_seconds() / 86400
-        if age < 0 or age > days:
+        if kind == "focus":
+            weight, window, half = FOCUS_WEIGHT, cfg["focus_days"], cfg["focus_half_life"]
+        else:
+            weight, window, half = WEIGHTS[kind], cfg["days"], cfg["half_life"]
+        if age < 0 or age > window:
             continue
-        pts = WEIGHTS[kind] * 0.5 ** (age / half_life)
+        pts = weight * 0.5 ** (age / half)
         total += pts
         if kind in SELF_KINDS:
             mine += pts
@@ -178,16 +195,20 @@ def score(issue, user, now, days, half_life):
     }
 
 
-def rank(issues, user, now, days, half_life, top):
-    rows = [score(i, user, now, days, half_life) for i in issues]
+DEFAULTS = {"days": 14, "half_life": 3.0, "focus_days": 60, "focus_half_life": 7.0}
+
+
+def rank(issues, user, now, top=10, **cfg):
+    cfg = {**DEFAULTS, **cfg}
+    rows = [score(i, user, now, cfg) for i in issues]
     rows.sort(key=lambda r: (-r["score"], -r["number"]))
     mine = [r for r in rows if r["mine"] > 0][:top]
     team = [r for r in rows if r["mine"] == 0 and r["score"] > 0][:max(3, top // 2)]
     return mine, team
 
 
-def render(mine, team, user, now, days):
-    lines = [f"# {user} 的近期热点（{now:%Y-%m-%d %H:%M} UTC，近 {days} 天）", "",
+def render(mine, team, user, now):
+    lines = [f"# {user} 的近期热点（{now:%Y-%m-%d %H:%M} UTC）", "",
              "| # | issue | 分 | 最近动作 |", "| --- | --- | --- | --- |"]
     for i, r in enumerate(mine, 1):
         tag = "（指派给你）" if r["assigned"] else ""
@@ -204,8 +225,13 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--repo", help="OWNER/NAME")
     ap.add_argument("--user", help="GitHub 登录名；默认取凭据对应的用户")
-    ap.add_argument("--days", type=int, default=14)
-    ap.add_argument("--half-life", type=float, default=3.0)
+    ap.add_argument("--days", type=int, default=DEFAULTS["days"], help="活动的计分窗口（天）")
+    ap.add_argument("--half-life", type=float, default=DEFAULTS["half_life"], help="活动的半衰期（天）")
+    ap.add_argument("--focus-days", type=int, default=DEFAULTS["focus_days"], help="关注的计分窗口（天）")
+    ap.add_argument("--focus-half-life", type=float, default=DEFAULTS["focus_half_life"],
+                    help="关注的半衰期（天）")
+    ap.add_argument("--focus-reaction", default="EYES",
+                    help="表示关注的表情（GraphQL ReactionContent，如 EYES、ROCKET、HEART）")
     ap.add_argument("--top", type=int, default=10)
     ap.add_argument("--json", action="store_true", help="输出 JSON 而不是 Markdown")
     ap.add_argument("--input", help="离线：读取已保存的 issue 列表（GraphQL nodes 格式）")
@@ -219,19 +245,20 @@ def main():
         with open(a.input, encoding="utf-8") as f:
             issues, user = json.load(f), a.user
     elif a.repo:
-        viewer, issues = fetch(a.repo, now - dt.timedelta(days=a.days))
+        viewer, issues = fetch(a.repo, now - dt.timedelta(days=a.days), a.focus_reaction.upper())
         user = a.user or viewer
     else:
         sys.exit("FAIL 需要 --repo 或 --input")
 
     user = user.lower()
-    mine, team = rank(issues, user, now, a.days, a.half_life, a.top)
+    mine, team = rank(issues, user, now, a.top, days=a.days, half_life=a.half_life,
+                      focus_days=a.focus_days, focus_half_life=a.focus_half_life)
     if a.json:
         json.dump({"user": user, "generated_at": now.isoformat(), "mine": mine, "team": team},
                   sys.stdout, ensure_ascii=False, indent=2)
         print()
     else:
-        print(render(mine, team, user, now, a.days))
+        print(render(mine, team, user, now))
 
 
 if __name__ == "__main__":

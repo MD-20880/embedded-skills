@@ -7,7 +7,7 @@ frontmatter、相对链接等通用检查由仓库的 tools/lint_skills.py 负�
   1. 章节引用：各文件中“method.md 第 X 章 / 第 X.Y 节”和 method.md 内部的“第 X 章 / 节”都能找到对应标题。
   2. 反引号中引用的 skill 内路径（references/、assets/、scripts/）都存在。
   3. assets/github/*.yml 都是合法 YAML，且含 name、description、body。
-  4. scripts/hotlist.py 的打分：用内置的假数据核对排序、本人/团队分组、窗口和半衰期。
+  4. scripts/hotlist.py 的打分：用内置的假数据核对关注与活动的排序、本人/团队分组、窗口和半衰期。
   5. 可选：--deny-file 指定一个禁用词文件（每行一个词，# 开头为注释），任一词出现即失败。
      用来防止项目专有名词混进本 skill；该文件放在仓库外，不提交。
 
@@ -83,7 +83,7 @@ def check_deny(path):
                 fail(f"{p.relative_to(ROOT)}: 出现禁用词“{w}”")
 
 
-def _issue(number, author, comments=(), timeline=(), assignees=()):
+def _issue(number, author, comments=(), timeline=(), assignees=(), reactions=()):
     return {
         "number": number, "title": f"t{number}", "url": "", "createdAt": "2026-01-01T00:00:00Z",
         "author": {"login": author},
@@ -91,6 +91,7 @@ def _issue(number, author, comments=(), timeline=(), assignees=()):
         "comments": {"nodes": [{"createdAt": t, "body": b, "author": {"login": w}}
                                for t, w, b in comments]},
         "timelineItems": {"nodes": list(timeline)},
+        "reactions": {"nodes": [{"createdAt": t, "user": {"login": w}} for t, w in reactions]},
     }
 
 
@@ -114,16 +115,25 @@ def check_hotlist():
         _issue(5, "other", comments=[("2026-01-10T00:00:00Z", "other", "请 @me 看一下")]),
         # 全无动静：两边都不出现
         _issue(6, "other"),
+        # 本人 1 天前点了关注：10 × 0.5^(1/7) ≈ 9.1，排第一
+        _issue(7, "other", reactions=[("2026-01-09T00:00:00Z", "me")]),
+        # 本人 7 天前点了关注：降温到 5.0
+        _issue(8, "other", reactions=[("2026-01-03T00:00:00Z", "me")]),
+        # 关注已过 60 天窗口，他人的关注不算：两边都不出现
+        _issue(9, "other", reactions=[("2025-10-31T00:00:00Z", "me"), ("2026-01-09T00:00:00Z", "other")]),
     ]
     mine, team = hotlist.rank(issues, "me", now, days=14, half_life=3.0, top=10)
     got = [r["number"] for r in mine]
-    if got != [1, 5, 2, 4]:
-        fail(f"hotlist: 我的热点顺序应为 [1, 5, 2, 4]，实际 {got}")
+    if got != [7, 1, 8, 5, 2, 4]:
+        fail(f"hotlist: 我的热点顺序应为 [7, 1, 8, 5, 2, 4]，实际 {got}")
     if [r["number"] for r in team] != [3]:
         fail(f"hotlist: 团队热点应只有 #3，实际 {[r['number'] for r in team]}")
-    if mine and mine[0]["score"] != round(3 + 3 * 0.5 ** (0.5 / 3), 1):
-        fail(f"hotlist: #1 的分数算错：{mine[0]['score']}")
-    if "（指派给你）" not in hotlist.render(mine, team, "me", now, 14):
+    scores = {r["number"]: r["score"] for r in mine}
+    if scores.get(1) != round(3 + 3 * 0.5 ** (0.5 / 3), 1):
+        fail(f"hotlist: #1 的分数算错：{scores.get(1)}")
+    if scores.get(8) != 5.0:
+        fail(f"hotlist: 7 天前的关注应降温到 5.0，实际 {scores.get(8)}")
+    if "（指派给你）" not in hotlist.render(mine, team, "me", now):
         fail("hotlist: Markdown 输出没有标出指派给本人的 issue")
 
 

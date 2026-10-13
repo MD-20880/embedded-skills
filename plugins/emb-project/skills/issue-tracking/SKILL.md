@@ -20,7 +20,7 @@ when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写�
 | `assets/templates/overview.md` | 总览模板（按状态、按截止节点、按对象三种视图） |
 | `assets/templates/gate-review.md` | 阶段门禁检查模板 |
 | `assets/github/*.yml` | GitHub issue 表单，复制到项目的 `.github/ISSUE_TEMPLATE/` 即可使用 |
-| `scripts/hotlist.py` | 个人热点：按本人近期的评论、PR、提交和指派给 open issue 打分排序（只读，GitHub） |
+| `scripts/hotlist.py` | 个人热点：本人点了关注表情的 open issue 排前面并慢慢降温，评论、PR、指派作次要加分（只读，GitHub） |
 
 ## 五条核心约定
 
@@ -116,7 +116,7 @@ when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写�
 用户想知道“我最近在跟哪些 issue”“把我手上最热的 issue 排出来”时，按 method.md 第 10.1 节：
 
 1. 仓库在 GitHub 上时运行 `python3 ${CLAUDE_SKILL_DIR}/scripts/hotlist.py --repo OWNER/NAME --user LOGIN`；`--user` 省略时取凭据对应的用户。其他工具按第 10.1 节的事件和权重人工排。
-2. 不要按“最近更新时间”排：批量改标签、改模板会刷新它。
+2. 主信号是本人在 issue 正文上点的关注表情（默认 👀，`--focus-reaction` 可改），慢慢降温；评论、PR、指派只作次要加分。不要按“最近更新时间”排：批量改标签、改模板会刷新它。
 3. 输出“我的热点”前 10 名，每条带最近动作；与本人无关但很热的单列“团队热点”，不混进主表。
 4. 用户要定期收到时，建议用定时任务每天跑一次，把结果发到用户指定的地方；写回 issue（例如刷新置顶 issue）属于改动外部系统，先确认。
 
