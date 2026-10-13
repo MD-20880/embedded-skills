@@ -1,0 +1,9 @@
+# 可选：让受控文件与登记表的改动必须经过指定的人审核。
+# 用法：合并到项目的 .github/CODEOWNERS，并在仓库设置的分支保护中开启
+#       “Require review from Code Owners”。路径与负责人按项目实际情况修改。
+#
+# hash 只能说明“受控文件变了”，不能说明“改动已批准”；需要人把关时才启用本文件。
+
+/docs/engineering-artifacts.yaml   @your-org/engineering-leads
+/docs/protocols/                    @your-org/protocol-owners
+/docs/adr/                          @your-org/architecture-owners

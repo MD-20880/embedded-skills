@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: create-managed-spec
+description: 新建跨板协议初稿，既要登记为 Draft，也必须保留现有资产和项目自定义类型。
+tags: [artifact-conventions, positive, scaffold]
+context:
+  scaffold_script: setup.sh

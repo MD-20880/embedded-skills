@@ -1,8 +1,8 @@
 {
   "name": "emb-repo",
   "displayName": "Embedded Repo",
-  "version": "0.2.0",
-  "description": "嵌入式项目基础：工程默认原则、项目画像、文档/构建目录和版本管理。Embedded project foundations: default engineering principles, project profile and repository management.",
+  "version": "0.3.0",
+  "description": "嵌入式项目基础：工程默认原则、受管理文件登记约定、项目画像和仓库管理。Embedded foundations: principles, engineering artifact registry conventions, project profile, repo management.",
   "author": {
     "name": "MD-20880"
   },
@@ -16,13 +16,21 @@
     "documentation",
     "engineering-principles",
     "knowledge",
-    "adr"
+    "adr",
+    "artifacts",
+    "registry"
   ],
   "userConfig": {
     "inject_principles": {
       "type": "boolean",
       "title": "自动注入工程原则 / Inject engineering principles",
       "description": "开启时，在会话开始注入轻量工程原则，在子 Agent 启动时注入一行精简版；关闭后只能通过 /emb-repo:engineering-principles 手动使用。On: inject short principles at session start and a one-line digest for subagents.",
+      "default": true
+    },
+    "integrity_reminders": {
+      "type": "boolean",
+      "title": "受控文件 hash 提醒 / Registry hash reminders",
+      "description": "开启时，在启用了 integrity: sha256 的项目中编辑受控文件后，提醒更新登记表 hash；编辑冻结文件时提醒撤销。只注入提示，不拦截。On: after editing a managed file, remind to update its registry hash.",
       "default": true
     }
   }

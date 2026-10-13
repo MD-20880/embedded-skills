@@ -1,0 +1,33 @@
+# 受控工程文件完整性检查（GitHub Actions 模板）
+# 用法：复制到项目的 .github/workflows/artifact-integrity.yml，
+#       并把 registry_check.py 复制到项目的 tools/registry_check.py。
+# 规则说明：emb-repo 插件 artifact-conventions skill 的 registry-format.md 第 6 节。
+name: Artifact integrity
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # --base 需要读取目标分支上的登记表
+          lfs: false              # 不下载 LFS 内容；工具直接使用指针中的 sha256
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyyaml
+      - name: Check registry hashes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 tools/registry_check.py check --base "origin/${{ github.base_ref }}"
+          else
+            python3 tools/registry_check.py check
+          fi

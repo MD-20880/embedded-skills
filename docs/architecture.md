@@ -39,7 +39,7 @@ embedded-skills（本仓库 = 插件市场）
 | 市场目录 | `.claude-plugin/marketplace.json` | 登记所有插件及其路径，用户通过它添加市场、安装插件 |
 | 插件 | `plugins/emb-<领域>/` | 一个工作领域一个插件，可独立安装、独立版本 |
 | skill | `plugins/<插件>/skills/<skill>/` | `SKILL.md`（流程与规则）+ `references/`（按需加载的细节）+ `scripts/`（确定性的辅助脚本）+ `assets/`（复制到项目中使用的模板、表单） |
-| 插件 hook | `plugins/<插件>/hooks/hooks.json` | 在会话或子 Agent 启动等事件上自动执行的只读脚本；目前仅 `emb-repo` 用于注入默认工程原则（见 4.8） |
+| 插件 hook | `plugins/<插件>/hooks/hooks.json` | 在会话或子 Agent 启动、编辑文件后等事件上自动执行的只读脚本；目前仅 `emb-repo` 使用：注入默认工程原则、受控文件 hash 提醒（见 4.8） |
 | 评测用例 | `plugins/<插件>/evals/<skill>/<用例>/` | `claude plugin eval` 用例，验证 skill 能否被正确触发、产出是否达标 |
 | 项目画像 | 使用方项目的 `docs/embedded-profile.md` | 项目事实的唯一汇总，所有 skill 共享 |
 | 模板与工具 | `templates/`、`tools/` | 新建 skill 的骨架、仓库规范检查 |
@@ -100,7 +100,8 @@ embedded-skills（本仓库 = 插件市场）
 
 ### 4.8 插件 hook：克制使用，必须可关闭
 
-- **决策**：只在“每个会话都应具备的少量默认知识”这类场景使用插件 hook。目前唯一的例子是 `emb-repo` 在 `SessionStart` 注入轻量工程原则、在 `SubagentStart` 注入一行精简版。
+- **决策**：只在“每个会话都应具备的少量默认知识”这类场景使用插件 hook。目前的用法都在 `emb-repo`：在 `SessionStart` 注入轻量工程原则、在 `SubagentStart` 注入一行精简版；在 `PostToolUse`（Edit / Write）后，若改的是启用了 hash 校验的受控文件，提示更新 hash 或撤销对冻结文件的修改。
+- **何时用 hook 而不是 skill**：需要在**普通任务中途**可靠发生的动作（例如“改完受控文件要更新 hash”）不能指望 skill 被触发——实测未加 hook 时这类评测为 0/3；能由脚本确定性判断的场景，用 hook 注入一句具体提示，加上之后为 3/3。
 - **理由**：skill 只有在被触发时才生效，而工程原则（区分假设与承诺、实现与验证等）需要在普通任务中默认体现；hook 是让它“默认在场”的唯一机制。
 - **约束**：
   - **影响面大**：所有领域插件都依赖 `emb-repo`，所以 `emb-repo` 的 hook 会到达每一位使用者。因此 hook 必须提供 `userConfig` 开关，并在插件 README 中写明如何关闭。

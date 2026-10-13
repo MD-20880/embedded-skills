@@ -100,6 +100,11 @@ claude plugin eval . --scaffold --allow-tools Write "Bash(python3 *)" "Bash(git 
 | emb-repo | `engineering-principles/contract-conflict` | 1.00（3 次，2026-10-09） |
 | emb-repo | `engineering-principles/lightweight-change` | 1.00（3 次，2026-10-09） |
 | emb-repo | `engineering-principles/no-trigger` | 1.00（3 次，2026-10-09） |
+| emb-repo | `artifact-conventions/create-managed-spec` | 1.00（3 次，2026-10-12） |
+| emb-repo | `artifact-conventions/registry-inconsistency` | 1.00（3 次，2026-10-12） |
+| emb-repo | `artifact-conventions/no-trigger` | 1.00（3 次，2026-10-12） |
+| emb-repo | `artifact-conventions/integrity-update` | 1.00（3 次，2026-10-12；需 `--scaffold --allow-tools Write Edit Bash`） |
+| emb-repo | `artifact-conventions/integrity-frozen` | 1.00（3 次，2026-10-12；同上） |
 | emb-project | `issue-tracking/close-check-checklist-done` | 1.00（3 次） |
 | emb-project | `issue-tracking/gate-review-dvt` | 1.00（3 次） |
 | emb-project | `issue-tracking/no-trigger-driver-code` | 1.00（3 次） |
