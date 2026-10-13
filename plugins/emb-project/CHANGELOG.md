@@ -7,7 +7,7 @@
 ### 新增
 
 - `issue-tracking` 新增工作流 F“个人热点”（method.md 第 10.1 节）：本人在 issue 正文上点了关注表情（默认 👀）的 open issue 排到前面，按 7 天半衰期慢慢降温；再点一次重新升温。评论、新开、PR 和提交引用、指派、@本人作为次要信号，按 3 天半衰期衰减。不按 issue 的更新时间排，避免批量改标签造成的失真。
-- 脚本 `scripts/hotlist.py`：只读，通过 GitHub GraphQL 取数，输出 Markdown 或 JSON；支持 `--input`/`--now` 离线运行。`selfcheck.py` 用假数据核对其排序和分组。
+- 脚本 `scripts/hotlist.py`：只读，通过 GitHub REST API 取数，输出 Markdown、JSON，或用 `--dump` 输出整理后的事件数据供其他页面打分；支持 `--input`/`--now` 离线运行。`selfcheck.py` 用假数据核对其排序和分组。
 - 原工作流 F、G 顺延为 G、H。
 
 ## [0.2.0] - 2026-10-06

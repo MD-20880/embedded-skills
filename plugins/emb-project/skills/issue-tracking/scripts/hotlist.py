@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """个人热点：把某人最近点了“关注”的 open issue 排到前面，再慢慢降温（method.md 第 10.1 节）。
 
-只读：通过 GitHub GraphQL 读取 open issue 的关注表情、评论、交叉引用、提交引用和指派事件，打分后输出到标准输出。
+只读：通过 GitHub REST API 读取 open issue 的关注表情、评论、交叉引用、提交引用和指派事件，打分后输出到标准输出。
 不读 issue 的 updatedAt：批量改标签、改模板会刷新它，排序因此失真。
 
 打分：每个事件按“权重 × 0.5^(距今天数 / 半衰期)”累加。
@@ -28,15 +28,18 @@
   python3 hotlist.py --repo OWNER/NAME [--user LOGIN] [--days 14] [--half-life 3] [--top 10] [--json]
   python3 hotlist.py --input issues.json --user LOGIN --now 2026-01-01T00:00:00Z   # 离线，用于自检
 
-鉴权：依次使用环境变量 GITHUB_TOKEN、GH_TOKEN、`gh auth token` 的输出。只用 Python 标准库。
+鉴权：依次使用环境变量 GITHUB_TOKEN、GH_TOKEN、`gh auth token` 的输出；都没有时不带凭据请求。只用 Python 标准库。\n`--dump` 输出整理后的原始数据（含事件），供其他页面或工具自行打分。
 """
 import argparse
+import concurrent.futures
 import datetime as dt
 import json
 import os
 import re
 import subprocess
 import sys
+import urllib.error
+import urllib.parse
 import urllib.request
 
 FOCUS_WEIGHT = 10
@@ -64,36 +67,7 @@ LABELS = {
     "assigned": "指派给你",
 }
 
-QUERY = """
-query($owner: String!, $name: String!, $after: String, $since: DateTime!,
-      $reaction: ReactionContent!) {
-  viewer { login }
-  repository(owner: $owner, name: $name) {
-    issues(states: OPEN, first: 50, after: $after, orderBy: {field: UPDATED_AT, direction: DESC}) {
-      pageInfo { hasNextPage endCursor }
-      nodes {
-        number title url createdAt
-        author { login }
-        assignees(first: 10) { nodes { login } }
-        reactions(content: $reaction, last: 50) { nodes { createdAt user { login } } }
-        comments(last: 50) { nodes { createdAt body author { login } } }
-        timelineItems(last: 50, since: $since,
-                      itemTypes: [CROSS_REFERENCED_EVENT, REFERENCED_EVENT, ASSIGNED_EVENT]) {
-          nodes {
-            __typename
-            ... on CrossReferencedEvent {
-              createdAt
-              source { __typename ... on PullRequest { number author { login } } }
-            }
-            ... on ReferencedEvent { createdAt actor { login } commit { abbreviatedOid } }
-            ... on AssignedEvent { createdAt assignee { ... on User { login } } }
-          }
-        }
-      }
-    }
-  }
-}
-"""
+API = "https://api.github.com"
 
 
 def parse_time(s):
@@ -101,36 +75,85 @@ def parse_time(s):
 
 
 def token():
+    """有凭据就用；没有时不带凭据请求（公开仓库，或由代理代为鉴权的环境）。"""
     for key in ("GITHUB_TOKEN", "GH_TOKEN"):
         if os.environ.get(key):
             return os.environ[key]
     try:
         return subprocess.run(["gh", "auth", "token"], capture_output=True, text=True,
-                              check=True).stdout.strip()
+                              check=True).stdout.strip() or None
     except (OSError, subprocess.CalledProcessError):
-        sys.exit("FAIL 没有 GitHub 凭据：设置 GITHUB_TOKEN，或先 gh auth login")
+        return None
+
+
+def get(path, tok, params=None):
+    """GET 一个 REST 列表接口，自动翻页。"""
+    url = f"{API}{path}?" + urllib.parse.urlencode({"per_page": 100, **(params or {})})
+    out = []
+    while url:
+        headers = {"Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28"}
+        if tok:
+            headers["Authorization"] = f"Bearer {tok}"
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers)) as r:
+                out += json.load(r)
+                m = re.search(r'<([^>]+)>;\s*rel="next"', r.headers.get("Link") or "")
+                url = m.group(1) if m else None
+        except urllib.error.HTTPError as e:
+            sys.exit(f"FAIL GitHub {e.code}：{url}")
+    return out
+
+
+def fetch_issue(repo, raw, since, reaction, tok):
+    """读一个 issue 的评论、时间线和关注表情，整理成打分用的结构。"""
+    n = raw["number"]
+    comments = get(f"/repos/{repo}/issues/{n}/comments", tok, {"since": since.isoformat()})
+    timeline = get(f"/repos/{repo}/issues/{n}/timeline", tok)
+    reactions = get(f"/repos/{repo}/issues/{n}/reactions", tok, {"content": reaction})
+    items = []
+    for e in timeline:
+        kind = e.get("event")
+        if kind == "cross-referenced":
+            src = (e.get("source") or {}).get("issue") or {}
+            if src.get("pull_request"):
+                items.append({"__typename": "CrossReferencedEvent", "createdAt": e["created_at"],
+                              "source": {"__typename": "PullRequest", "number": src["number"],
+                                         "author": src.get("user")}})
+        elif kind == "referenced" and e.get("commit_id"):
+            items.append({"__typename": "ReferencedEvent", "createdAt": e["created_at"],
+                          "actor": e.get("actor"), "commit": {"abbreviatedOid": e["commit_id"][:7]}})
+        elif kind == "assigned":
+            items.append({"__typename": "AssignedEvent", "createdAt": e["created_at"],
+                          "assignee": e.get("assignee")})
+    return {
+        "number": n, "title": raw["title"], "url": raw["html_url"], "createdAt": raw["created_at"],
+        "author": raw.get("user"),
+        "labels": [l["name"] for l in raw.get("labels", [])],
+        "assignees": {"nodes": raw.get("assignees") or []},
+        "reactions": {"nodes": [{"createdAt": r["created_at"], "user": r.get("user")}
+                                for r in reactions]},
+        "comments": {"nodes": [{"createdAt": c["created_at"], "body": c.get("body"),
+                                "author": c.get("user")} for c in comments]},
+        "timelineItems": {"nodes": items},
+    }
 
 
 def fetch(repo, since, reaction):
-    owner, name = repo.split("/", 1)
-    tok, after, issues, viewer = token(), None, [], None
-    while True:
-        body = json.dumps({"query": QUERY, "variables": {
-            "owner": owner, "name": name, "after": after, "since": since.isoformat(),
-            "reaction": reaction}})
-        req = urllib.request.Request("https://api.github.com/graphql", data=body.encode(),
-                                     headers={"Authorization": f"bearer {tok}",
-                                              "Content-Type": "application/json"})
-        with urllib.request.urlopen(req) as r:
-            data = json.load(r)
-        if data.get("errors"):
-            sys.exit(f"FAIL GraphQL：{data['errors'][0].get('message')}")
-        viewer = data["data"]["viewer"]["login"]
-        page = data["data"]["repository"]["issues"]
-        issues += page["nodes"]
-        if not page["pageInfo"]["hasNextPage"]:
-            return viewer, issues
-        after = page["pageInfo"]["endCursor"]
+    """读取全部 open issue（不含 PR）。返回 (凭据对应的登录名或 None, issue 列表)。"""
+    tok = token()
+    raws = [i for i in get(f"/repos/{repo}/issues", tok, {"state": "open"})
+            if "pull_request" not in i]
+    with concurrent.futures.ThreadPoolExecutor(8) as pool:
+        issues = list(pool.map(lambda r: fetch_issue(repo, r, since, reaction, tok), raws))
+    viewer = None
+    if tok:
+        try:
+            req = urllib.request.Request(f"{API}/user", headers={"Authorization": f"Bearer {tok}"})
+            with urllib.request.urlopen(req) as r:
+                viewer = json.load(r)["login"]
+        except urllib.error.URLError:
+            pass
+    return viewer, issues
 
 
 def login(node):
@@ -230,11 +253,12 @@ def main():
     ap.add_argument("--focus-days", type=int, default=DEFAULTS["focus_days"], help="关注的计分窗口（天）")
     ap.add_argument("--focus-half-life", type=float, default=DEFAULTS["focus_half_life"],
                     help="关注的半衰期（天）")
-    ap.add_argument("--focus-reaction", default="EYES",
-                    help="表示关注的表情（GraphQL ReactionContent，如 EYES、ROCKET、HEART）")
+    ap.add_argument("--focus-reaction", default="eyes",
+                    help="表示关注的表情（如 eyes、rocket、heart）")
     ap.add_argument("--top", type=int, default=10)
     ap.add_argument("--json", action="store_true", help="输出 JSON 而不是 Markdown")
-    ap.add_argument("--input", help="离线：读取已保存的 issue 列表（GraphQL nodes 格式）")
+    ap.add_argument("--input", help="离线：读取 --dump 保存的 issue 列表")
+    ap.add_argument("--dump", action="store_true", help="不打分，输出整理后的 issue 与事件 JSON")
     ap.add_argument("--now", help="离线：指定当前时间（ISO 8601）")
     a = ap.parse_args()
 
@@ -245,10 +269,17 @@ def main():
         with open(a.input, encoding="utf-8") as f:
             issues, user = json.load(f), a.user
     elif a.repo:
-        viewer, issues = fetch(a.repo, now - dt.timedelta(days=a.days), a.focus_reaction.upper())
+        viewer, issues = fetch(a.repo, now - dt.timedelta(days=a.days), a.focus_reaction.lower())
         user = a.user or viewer
+        if not user:
+            sys.exit("FAIL 无法确定用户：请加 --user")
     else:
         sys.exit("FAIL 需要 --repo 或 --input")
+
+    if a.dump:
+        json.dump(issues, sys.stdout, ensure_ascii=False)
+        print()
+        return
 
     user = user.lower()
     mine, team = rank(issues, user, now, a.top, days=a.days, half_life=a.half_life,
