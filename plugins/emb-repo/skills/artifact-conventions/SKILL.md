@@ -3,7 +3,7 @@ name: artifact-conventions
 description: 在创建、修改或整理工程文件时，辨别项目声明的受管理工程资产类型，说明 YAML 登记索引、稳定身份、状态、范围与生命周期的轻量约定，并指出需同步登记的文件。Recognize managed engineering artifact types and maintain a lightweight project registry of their identity and lifecycle.
 when_to_use: 创建工程文档、增加协议规范、更新设计方案、登记 ADR、收录验证报告、迁移受管理文件、建立工程文件索引、整理项目的受管理资产类型、把文件设为受控或纳入文控时使用；"create a design document", "register an engineering artifact", "manage technical documents", "put a document under document control". 普通源码、临时脚本、随手笔记等不需要单独触发此 Skill。
 argument-hint: "[新建/修改的文件或工程文件管理问题]"
-allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *)
+allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python tools/registry_check.py check *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(py -3 tools/registry_check.py check *)
 ---
 
 # 工程文件管理约定（artifact-conventions）
@@ -16,7 +16,7 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
 - [内置类型与项目扩展、非纳管边界](references/type-guide.md)
 - [创建、修订、迁移与专业 Skills 集成](references/adoption-and-integration.md)
 - [可复制的最小 YAML 示例](assets/engineering-artifacts.example.yaml)
-- 完整性校验工具：`python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py {check|update|hash}`；项目 CI 模板见 `assets/ci/`
+- 完整性校验工具：`python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py {check|update|hash}`（Windows 上没有 `python3` 时用 `python` 或 `py -3`）；项目 CI 模板见 `assets/ci/`
 
 ## 输入与产出
 

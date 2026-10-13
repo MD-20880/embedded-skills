@@ -217,7 +217,9 @@ def lint_skill(r, plugin, plugin_root, skill, readme_text):
                 r.error(rel(path), f"Python 语法错误（第 {exc.lineno} 行）：{exc.msg}")
     selfcheck = os.path.join(sdir, "scripts", "selfcheck.py")
     if os.path.exists(selfcheck):
-        res = subprocess.run([sys.executable, selfcheck], cwd=sdir, capture_output=True, text=True)
+        # Child output is UTF-8 on every platform, so a Chinese Windows locale (cp936 / GBK) cannot garble it.
+        res = subprocess.run([sys.executable, selfcheck], cwd=sdir, capture_output=True, text=True,
+                             encoding="utf-8", errors="replace", env=dict(os.environ, PYTHONIOENCODING="utf-8"))
         if res.returncode != 0:
             detail = "; ".join(l for l in res.stdout.splitlines() if l.startswith("FAIL")) or res.stderr.strip()
             r.error(rel(selfcheck), f"skill 自检未通过：{detail}")
@@ -339,6 +341,11 @@ def lint_version_bump(r, ref, plugins):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:  # UTF-8 in CI logs and pipes even under a cp936 / GBK locale
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--strict", action="store_true", help="treat warnings as errors")
     ap.add_argument("--changed-since", metavar="REF", help="require version bumps for plugins changed since REF")

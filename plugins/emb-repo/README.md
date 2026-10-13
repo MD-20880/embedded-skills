@@ -45,7 +45,9 @@ hook 只读取插件自身文件和项目登记表，不审批、不拦截、不
 
 ### 运行要求
 
-hook 以 exec 形式调用 `python3`（不经过 shell）。Windows 上若只有 `python` 或 `py`、没有 `python3`，每次启动会话都会出现 hook 错误；此时请安装提供 `python3` 的 Python 发行版，或按上文关闭自动注入。
+- **Python 3.8 及以上**：hook 经 `hooks/run-python.sh` 启动，依次尝试 `python3`、`python`、`py -3`，用第一个真正能运行的；只装了 python.org 版 Python（没有 `python3`）的 Windows 也能用。都不可用时，Claude Code 会显示 hook 错误，提醒你安装 Python。
+- **Windows 需要 Git for Windows**：Claude Code 在 Windows 上通过 Git Bash 运行 hook 命令（Bash 工具同样需要它）。没有 Git Bash 时 hook 无法启动，会显示 hook 错误；不影响 skill 的手动调用。
+- hook 读写一律按 UTF-8 处理，不受 Windows 中文系统本地编码（cp936 / GBK）影响；项目路径含中文也可以。
 
 修改原则或 hook 后，运行 `python3 skills/engineering-principles/scripts/selfcheck.py` 检查两种输出、开关和体积上限（仓库 lint 也会自动运行它）。
 

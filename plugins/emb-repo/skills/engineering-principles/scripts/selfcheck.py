@@ -5,8 +5,10 @@ No network or Claude CLI is needed. Prints `FAIL ...` lines and exits 1 on failu
 """
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -16,6 +18,7 @@ CORE = SKILL_DIR / "references" / "core-principles.md"
 HOOK = PLUGIN_DIR / "hooks" / "hooks.json"
 MANIFEST = PLUGIN_DIR / ".claude-plugin" / "plugin.json"
 SCRIPT_ARG = "${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py"
+HOOK_CMD = f'sh "${{CLAUDE_PLUGIN_ROOT}}/hooks/run-python.sh" "{SCRIPT_ARG}"'
 OPTION = "CLAUDE_PLUGIN_OPTION_INJECT_PRINCIPLES"
 SESSION_LIMIT = 4000   # well under Claude Code's 10,000-character hook output cap
 DIGEST_LIMIT = 300
@@ -28,12 +31,23 @@ def check(condition, message):
     return condition
 
 
-def run(event, option=None):
-    env = {k: v for k, v in os.environ.items() if k != OPTION}
+def gbk_env(tmp):
+    """Environment whose locale encoding is GBK (like cp936 on Chinese Windows), or None if unavailable."""
+    if not shutil.which("localedef"):
+        return None
+    subprocess.run(["localedef", "-i", "zh_CN", "-f", "GBK", os.path.join(tmp, "zh_CN.GBK")], capture_output=True)
+    env = dict(os.environ, LOCPATH=tmp, LC_ALL="zh_CN.GBK", PYTHONUTF8="0")
+    probe = subprocess.run([sys.executable, "-c", "import locale;print(locale.getpreferredencoding(False))"],
+                           capture_output=True, text=True, env=env)
+    return env if probe.stdout.strip().upper() in ("GBK", "CP936") else None
+
+
+def run(event, option=None, base_env=None):
+    env = {k: v for k, v in (base_env or os.environ).items() if k != OPTION}
     if option is not None:
         env[OPTION] = option
     return subprocess.run([sys.executable, str(INJECT)], input=json.dumps({"hook_event_name": event}),
-                          capture_output=True, text=True, encoding="utf-8", timeout=5, env=env)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, env=env)
 
 
 def main():
@@ -46,8 +60,8 @@ def main():
         check(len(hooks) == 1, f"{event}: 应恰好有一个 hook")
         if hooks:
             h = hooks[0]
-            check(h.get("type") == "command" and h.get("command") == "python3"
-                  and h.get("args") == [SCRIPT_ARG], f"{event}: hook 须为 exec 形式调用 {SCRIPT_ARG}")
+            check(h.get("type") == "command" and h.get("command") == HOOK_CMD and "args" not in h,
+                  f"{event}: hook 须经 hooks/run-python.sh 调用 {SCRIPT_ARG}")
 
     option = json.loads(MANIFEST.read_text(encoding="utf-8")).get("userConfig", {}).get("inject_principles", {})
     check(option.get("type") == "boolean" and option.get("default") is True,
@@ -72,6 +86,15 @@ def main():
             check(r.returncode == 0 and r.stdout == "", f"选项为 {value} 时 {event} 应静默")
     for value in ("true", "1"):
         check(run("SessionStart", value).stdout.strip() == core, f"选项为 {value} 时应注入")
+
+    # Claude Code reads hook output as UTF-8; a cp936 / GBK locale (Chinese Windows) must not change that
+    with tempfile.TemporaryDirectory() as tmp:
+        env = gbk_env(tmp)
+        if env is None:
+            print("NOTE 未能生成 GBK locale，跳过本地编码用例")
+        else:
+            g = run("SessionStart", base_env=env)
+            check(g.returncode == 0 and g.stdout.strip() == core, "GBK 本地编码下 SessionStart 仍应输出 UTF-8 原文")
 
     c = run("PostToolUse")
     check(c.returncode == 0 and c.stdout == "", "无关事件应静默")

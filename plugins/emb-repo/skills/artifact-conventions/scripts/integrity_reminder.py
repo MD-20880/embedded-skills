@@ -15,6 +15,7 @@ Standard library only, because it runs in users' environments without PyYAML.
 import json
 import os
 import re
+import shlex
 import sys
 
 REGISTRY = os.path.join("docs", "engineering-artifacts.yaml")
@@ -22,6 +23,18 @@ OPTION = "CLAUDE_PLUGIN_OPTION_INTEGRITY_REMINDERS"
 OFF_VALUES = {"false", "0", "no", "off"}
 FROZEN = {"superseded", "archived"}
 SKILL_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "registry_check.py")
+
+
+def shell_cmd(*parts):
+    """Command line for Claude's Bash tool (sh, or Git Bash on Windows).
+
+    On Windows, name the interpreter running this hook (python3 often does not exist there)
+    and use forward slashes, which Git Bash keeps intact inside quotes.
+    """
+    if os.name == "nt":
+        parts = [p.replace("\\", "/") for p in (sys.executable, *parts)]
+        return " ".join(f'"{p}"' if re.search(r"[^\w@%+=:,./-]", p) else p for p in parts)
+    return " ".join(["python3", *map(shlex.quote, parts)])
 
 
 def find_registry(file_path):
@@ -84,8 +97,8 @@ def scan(text):
 def main():
     if os.environ.get(OPTION, "true").strip().lower() in OFF_VALUES:
         return 0
-    try:
-        event = json.load(sys.stdin)
+    try:  # Claude Code sends UTF-8; do not decode with the locale (cp936 / GBK on Chinese Windows)
+        event = json.loads(sys.stdin.buffer.read().decode("utf-8"))
     except ValueError:
         return 0
     if event.get("hook_event_name") != "PostToolUse" or event.get("tool_name") not in ("Edit", "Write"):
@@ -96,7 +109,7 @@ def main():
     if not os.path.isabs(file_path):
         file_path = os.path.join(event.get("cwd") or os.getcwd(), file_path)
     root, registry = find_registry(file_path)
-    if not registry or os.path.abspath(file_path) == os.path.abspath(registry):
+    if not registry or os.path.normcase(os.path.abspath(file_path)) == os.path.normcase(os.path.abspath(registry)):
         return 0  # no registry, or the registry itself was edited
     try:
         with open(registry, encoding="utf-8-sig") as f:  # tolerate a BOM (e.g. saved by Windows Notepad)
@@ -118,10 +131,10 @@ def main():
                f"不要用 --allow-frozen 绕过，除非用户明确要求。")
     else:
         msg = (f"[artifact-conventions] 你刚修改的 {rel} 是受控文件 {aid}（{status}），项目启用了 hash 校验。"
-               f"完成对它的修改后，在同一变更中运行：python3 {tool} update {aid} --root {root}，"
+               f"完成对它的修改后，在同一变更中运行：{shell_cmd(tool, 'update', aid, '--root', root)}，"
                f"再运行 check 确认通过；hash 更新不代表批准，汇报时如实说明。")
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}},
-                     ensure_ascii=False))
+    out = json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": msg}})
+    sys.stdout.buffer.write(out.encode("ascii") + b"\n")  # \uXXXX escapes: safe whatever the locale
     return 0
 
 
