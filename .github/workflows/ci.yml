@@ -30,6 +30,32 @@ jobs:
           python3 -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . > /dev/null
           python3 -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . --json > /dev/null
 
+  windows:
+    # 不少使用方在 Windows 上开发：在真实的 Windows 环境（本地编码非 UTF-8、检出为 CRLF、
+    # 只有 python / py 而未必有 python3）里跑一遍仓库检查和各 skill 的确定性自检。
+    name: Windows 自检（lint_skills.py）
+    runs-on: windows-latest
+    defaults:
+      run:
+        # Git Bash（-eo pipefail）：任一命令失败即判失败。pwsh 只看最后一条原生命令的退出码。
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r tools/requirements.txt
+      - name: Lint（含各 skill 自检）
+        run: python tools/lint_skills.py
+      - name: 自检明细（确认 Windows 上各用例实际运行，而非 NOTE 跳过）
+        run: |
+          python plugins/emb-repo/skills/artifact-conventions/scripts/selfcheck.py
+          python plugins/emb-repo/skills/engineering-principles/scripts/selfcheck.py
+      - name: 扫描脚本自测
+        run: |
+          python -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . > /dev/null
+          python -I plugins/emb-repo/skills/project-profile/scripts/scan_repo.py . --json > /dev/null
+
   validate:
     name: 官方校验（claude plugin validate）
     runs-on: ubuntu-latest

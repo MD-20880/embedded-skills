@@ -32,8 +32,8 @@ def digest(core):
 
 
 def main():
-    try:
-        event = json.load(sys.stdin).get("hook_event_name")
+    try:  # Claude Code sends UTF-8; do not decode with the locale (cp936 / GBK on Chinese Windows)
+        event = json.loads(sys.stdin.buffer.read().decode("utf-8")).get("hook_event_name")
     except (ValueError, AttributeError):
         return 0
     if event not in ("SessionStart", "SubagentStart") or not enabled():
@@ -45,15 +45,16 @@ def main():
     if not core:
         return 0
 
+    # Write bytes: print() would use the locale encoding on Windows, while Claude Code reads UTF-8.
     if event == "SessionStart":
-        print(core)
+        sys.stdout.buffer.write(core.encode("utf-8") + b"\n")
     else:
-        print(json.dumps({
+        sys.stdout.buffer.write(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "SubagentStart",
                 "additionalContext": digest(core),
             }
-        }, ensure_ascii=False))
+        }).encode("ascii") + b"\n")
     return 0
 
 

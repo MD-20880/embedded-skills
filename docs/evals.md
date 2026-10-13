@@ -97,14 +97,15 @@ claude plugin eval . --scaffold --allow-tools Write "Bash(python3 *)" "Bash(git 
 | emb-repo | `project-profile/init-multi-board` | 1.00（1 次） |
 | emb-repo | `project-profile/check-stale` | 1.00（1 次） |
 | emb-repo | `project-profile/no-trigger-general-c` | 1.00（1 次） |
-| emb-repo | `engineering-principles/contract-conflict` | 1.00（3 次，2026-10-09） |
+| emb-repo | `engineering-principles/contract-conflict` | 1.00（3 次，2026-10-09；hook 改经 `run-python.sh` 启动后 2 次，2026-10-13） |
 | emb-repo | `engineering-principles/lightweight-change` | 1.00（3 次，2026-10-09） |
 | emb-repo | `engineering-principles/no-trigger` | 1.00（3 次，2026-10-09） |
-| emb-repo | `artifact-conventions/create-managed-spec` | 1.00（3 次，2026-10-12） |
+| emb-repo | `artifact-conventions/create-managed-spec` | 1.00（3 次，2026-10-12；纳管边界规则加入后 2 次，2026-10-13） |
 | emb-repo | `artifact-conventions/registry-inconsistency` | 1.00（3 次，2026-10-12） |
 | emb-repo | `artifact-conventions/no-trigger` | 1.00（3 次，2026-10-12） |
-| emb-repo | `artifact-conventions/integrity-update` | 1.00（3 次，2026-10-12；需 `--scaffold --allow-tools Write Edit Bash`） |
-| emb-repo | `artifact-conventions/integrity-frozen` | 1.00（3 次，2026-10-12；同上） |
+| emb-repo | `artifact-conventions/integrity-update` | 1.00（3 次，2026-10-12；hook 改经 `run-python.sh` 启动后 2 次，2026-10-13；需 `--scaffold --allow-tools Write Edit Bash`） |
+| emb-repo | `artifact-conventions/integrity-frozen` | 1.00（3 次，2026-10-12；hook 改经 `run-python.sh` 启动后 2 次，2026-10-13；同上） |
+| emb-repo | `artifact-conventions/external-not-managed` | 装插件 1.00 / 不装插件 0.00，Δ +1.00（各 3 次，2026-10-13；需 `--scaffold --allow-tools Write Edit`） |
 | emb-project | `issue-tracking/close-check-checklist-done` | 1.00（3 次） |
 | emb-project | `issue-tracking/gate-review-dvt` | 1.00（3 次） |
 | emb-project | `issue-tracking/no-trigger-driver-code` | 1.00（3 次） |

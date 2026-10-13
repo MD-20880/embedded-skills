@@ -2,6 +2,32 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-10-13
+
+### 新增
+
+- `artifact-conventions`：明确**纳管以仓库为边界**——只有已提交到本仓库的文件才能登记为受管理文件。飞书、网盘、在线表格、厂商网站等外部系统中的内容不在管理范围内；需要纳管时由负责人把文件或其导出快照提交进仓库后再登记，外部链接只作为 `source` 来源说明，不单独成为条目。未经用户明确要求，不代为从外部系统抓取内容入库。
+- 自检清单新增一项：登记的条目都是仓库中的文件。
+- 新增评测 `external-not-managed`：用户要求把飞书文档登记为受控文件时，应说明需先放入仓库，不得把链接写进登记表。
+
+### 修复（Windows）
+
+此前插件只在 Linux 上验证过；以下问题会影响 Windows 使用者，现已修复，并在 CI 中增加 Windows 环境运行全部确定性自检。
+
+- **hook 在 Windows 上大多无法启动**：原来以 exec 形式直接调用 `python3`，而 python.org 版 Python 在 Windows 上只提供 `python` 和 `py`，每次会话和每次编辑都会出现 hook 错误，原则注入和 hash 提醒都不生效。现在三个 hook 统一经 `hooks/run-python.sh` 启动，依次尝试 `python3`、`python`、`py -3`，实际运行通过才使用（可跳过应用商店的 `python3` 占位程序）；都不可用时以非零退出，让 Claude Code 显示 hook 错误。
+- **中文系统下 hook 输入输出乱码**：hook 原来按本地编码（cp936 / GBK）读 stdin、写 stdout，而 Claude Code 按 UTF-8 收发。现在一律按 UTF-8 读入；hash 提醒以 ASCII 转义的 JSON 输出，原则注入按 UTF-8 字节输出。项目路径含中文时提醒也能正确识别文件。
+- **hash 提醒给出的命令在 Windows 上不可用**：提示中的命令改为使用当前运行 hook 的 Python 解释器，路径用正斜杠并按需加引号，可直接在 Git Bash 中执行。
+- **`registry_check.py update` 改变登记表换行符**：原来在 Windows 上会把 LF 登记表整体改成 CRLF（Linux 上则相反），产生整文件 diff。现在保留文件原有的换行符。管道输出（CI 日志、Claude 的 Bash 工具）固定为 UTF-8。
+- **`project-profile` 的 `scan_repo.py` 在 Windows 上输出中文时崩溃**：英文 Windows（cp1252）下直接报 `UnicodeEncodeError`，中文 Windows 下输出为 GBK 而非 UTF-8。管道输出现固定为 UTF-8。
+- `tools/lint_skills.py` 以 UTF-8 运行并读取各 skill 自检的输出。
+
+### 变更
+
+- `artifact-conventions` 的 `allowed-tools` 增加 `python` / `py -3` 形式的只读 `check` 命令；文档注明 Windows 上可用 `python` 或 `py -3` 代替 `python3`。
+- `registry-format.md`：第 1 节写明登记范围；`path` 字段注明不得填外部链接；`source` 字段说明可记录外部原件地址；外部资料条目改为“原件放入仓库后登记”。
+- `type-guide.md`：`reference` 类型的纳管条件补充“原件已放入仓库”；“不纳管的典型对象”新增仓库外内容。
+- `SKILL.md` 第 3 节第 5 条（外部资料）与新边界统一表述；`when_to_use` 增加“把文件设为受控 / 纳入文控”触发词。
+
 ## [0.3.0] - 2026-10-09
 
 ### 新增

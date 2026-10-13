@@ -45,6 +45,8 @@
 4. 需要指定把关人时，参照 `assets/ci/CODEOWNERS.example`，为登记表和受控文件目录设置 CODEOWNERS，并在仓库设置中要求代码所有者审核。这一步可选。
 5. 在项目画像第 8 节（文档约定）中写明“受控文件启用了 hash 校验，修改后运行 `tools/registry_check.py update <id>`”，方便人和 Agent 发现。
 
+命令中的 `python3` 在 Windows 上可换成 `python` 或 `py -3`。`registry_check.py` 按 UTF-8 读写登记表，`update` 保留登记表原有的换行符（CRLF 或 LF），因此 Windows 与 Linux 上的开发者可以混用。
+
 日常使用（安装了 `emb-repo` 插件时，Claude 编辑受控文件后会收到 `PostToolUse` 提醒，自动按下面的方式处理；人工修改时照做即可）：
 
 - 修改受控文件 → `python3 tools/registry_check.py update <id>` → 与文件改动一起提交；

@@ -54,17 +54,19 @@ LFS_OID = "a" * 64
 
 
 def run(root, *args):
-    return subprocess.run([sys.executable, TOOL, *args, "--root", root], capture_output=True, text=True)
+    return subprocess.run([sys.executable, TOOL, *args, "--root", root], capture_output=True, text=True,
+                          encoding="utf-8")
 
 
-def remind(root, rel, tool="Edit", option=None, env_pyyaml=True):
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PLUGIN_OPTION_INTEGRITY_REMINDERS"}
+def remind(root, rel, tool="Edit", option=None, env_pyyaml=True, base_env=None, cmd=None):
+    env = {k: v for k, v in (base_env or os.environ).items() if k != "CLAUDE_PLUGIN_OPTION_INTEGRITY_REMINDERS"}
     if option is not None:
         env["CLAUDE_PLUGIN_OPTION_INTEGRITY_REMINDERS"] = option
     payload = {"hook_event_name": "PostToolUse", "tool_name": tool, "cwd": root,
                "tool_input": {"file_path": os.path.join(root, rel)}}
-    r = subprocess.run([sys.executable, "-S", REMINDER], input=json.dumps(payload), capture_output=True,
-                       text=True, env=env)
+    # Claude Code sends UTF-8 JSON on stdin, whatever the locale.
+    r = subprocess.run(cmd or [sys.executable, "-S", REMINDER], input=json.dumps(payload, ensure_ascii=False),
+                       capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
     if r.returncode != 0 or not r.stdout.strip():
         return r.returncode, ""
     return r.returncode, json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
@@ -102,6 +104,11 @@ def git(root, *args):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:  # UTF-8 in CI logs and pipes even under a cp1252 / cp936 locale on Windows
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
+        except (AttributeError, ValueError):
+            pass
     tmp = tempfile.mkdtemp(prefix="registry-selfcheck-")
     try:
         root = os.path.join(tmp, "repo")
@@ -180,8 +187,9 @@ def main():
         check(remind(root2, "docs/d.md")[1] != "", "无缩进列表写法的登记表也应识别")
         hooks = json.load(open(HOOKS, encoding="utf-8"))["hooks"].get("PostToolUse", [])
         check(any(e.get("matcher") == "Edit|Write" and any(
-            h.get("command") == "python3" and h.get("args", [""])[0].endswith("integrity_reminder.py")
-            for h in e.get("hooks", [])) for e in hooks), "hooks.json 应以 exec 形式为 Edit|Write 注册提醒")
+            h.get("command", "").startswith('sh "${CLAUDE_PLUGIN_ROOT}/hooks/run-python.sh" ')
+            and h["command"].endswith('/integrity_reminder.py"') for h in e.get("hooks", [])) for e in hooks),
+            "hooks.json 应经 hooks/run-python.sh 为 Edit|Write 注册提醒")
 
         # ---- PR #6 评审回归用例
         # (1) 嵌套字段：source.sha256 与 source.id 不能被当成条目自己的字段
@@ -311,6 +319,52 @@ def main():
         check("update A" in remind(root11, "docs/a.md")[1], "登记表带 BOM 时 hook 仍应提醒")
         check(run(root11, "update", "A").returncode == 0 and run(root11, "check").returncode == 0,
               "登记表带 BOM 时 update / check 应正常")
+
+        # ---- Windows 相关回归用例
+        body = ("integrity: sha256\ntypes:\n  design: {purpose: d}\nartifacts:\n  - id: A\n"
+                "    type: design\n    path: docs/a.md\n    status: draft\n    scope: [project]\n")
+        # (1) update 保留登记表原有换行符（Windows 上文本模式写回会把 LF 全部改成 CRLF）
+        for name, nl in (("crlf-registry", "\r\n"), ("lf-registry", "\n")):
+            r12 = os.path.join(tmp, name)
+            write(r12, "docs/a.md", "a\n")
+            write(r12, "docs/engineering-artifacts.yaml", body.replace("\n", nl))
+            ok = run(r12, "update", "A").returncode == 0 and run(r12, "check").returncode == 0
+            raw = open(os.path.join(r12, "docs/engineering-artifacts.yaml"), "rb").read()
+            kept = raw.count(b"\r\n") == (raw.count(b"\n") if nl == "\r\n" else 0)
+            check(ok and kept and b"sha256:" in raw, f"update 应保留登记表的 {name.split('-')[0].upper()} 换行")
+        # (2) 项目路径含中文：hook 按 UTF-8 读 stdin（在 Windows CI 上，本地编码不是 UTF-8，此项才真正生效）
+        root13 = os.path.join(tmp, "中文目录")
+        write(root13, "docs/a.md", "a\n")
+        write(root13, "docs/engineering-artifacts.yaml", body)
+        check("update A" in remind(root13, "docs/a.md")[1], "项目路径含中文时 hook 应提醒")
+        # GBK 本地编码下 hook 的输出仍须是 Claude Code 能按 UTF-8 读的内容。Linux 上 GBK locale 会按 GBK
+        # 编码文件名而找不到 UTF-8 创建的中文目录（Windows 文件接口始终是 Unicode，无此问题），所以这里用 ASCII 路径
+        env = gbk_env(tmp)
+        if env is None:
+            print("NOTE 未能生成 GBK locale，跳过 hook 的本地编码回归用例")
+        else:
+            msg = remind(root, "docs/spec.md", base_env=env)[1]
+            check("update SPEC-1" in msg and "受控文件" in msg, "GBK 本地编码下 hook 输出的中文应能按 UTF-8 正确解析")
+        # (3) hooks/run-python.sh：python3 不可用（如 Windows 只装了 python / py）时改用其他候选
+        launcher = os.path.normpath(os.path.join(HERE, "..", "..", "..", "hooks", "run-python.sh"))
+        sh = shutil.which("sh")
+        if sh is None:
+            print("NOTE 未找到 sh，跳过 run-python.sh 用例")
+        else:
+            via = [sh, launcher, REMINDER]
+            check("update A" in remind(root13, "docs/a.md", cmd=via)[1], "经 run-python.sh 启动时 hook 应提醒")
+            if os.name != "nt":  # fake interpreters below are POSIX shell scripts
+                fake = os.path.join(tmp, "fakebin")
+                write(fake, "python3", "#!/bin/sh\nexit 9009\n")  # like the Microsoft Store stub
+                write(fake, "python", f'#!/bin/sh\nexec "{sys.executable}" "$@"\n')
+                for f in ("python3", "python"):
+                    os.chmod(os.path.join(fake, f), 0o755)
+                env = dict(os.environ, PATH=fake + os.pathsep + os.environ.get("PATH", ""))
+                check("update A" in remind(root13, "docs/a.md", base_env=env, cmd=via)[1],
+                      "python3 不可用时 run-python.sh 应改用 python")
+                os.remove(os.path.join(fake, "python"))
+                code, _ = remind(root13, "docs/a.md", base_env=dict(os.environ, PATH=fake), cmd=via)
+                check(code == 1, "找不到任何可用 Python 时 run-python.sh 应以非零退出（让 Claude Code 显示 hook 错误）")
 
         root3 = os.path.join(tmp, "optout")
         write(root3, "docs/engineering-artifacts.yaml", "types: {}\nartifacts: []\n")

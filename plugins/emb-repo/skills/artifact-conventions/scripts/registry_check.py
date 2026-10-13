@@ -304,8 +304,11 @@ def cmd_update(args):
     broken = [aid for aid, h in expected.items() if str((result.get(aid) or {}).get("sha256")) != h]
     if broken or set(result) != set(by_id):
         die(f"更新后的登记表校验失败（{', '.join(broken) or '条目集合发生变化'}），登记表未修改；请报告此问题")
-    with open(os.path.join(args.root, args.registry), "w", encoding="utf-8") as f:
-        f.write(new_text)
+    path = os.path.join(args.root, args.registry)
+    with open(path, "rb") as f:  # keep the file's own line endings (CRLF on Windows checkouts, LF elsewhere)
+        newline = "\r\n" if b"\r\n" in f.read() else "\n"
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(new_text.replace("\n", newline) if newline != "\n" else new_text)
     for aid in reversed(updated):
         print(f"已更新 {aid}")
     for s in skipped:
@@ -321,8 +324,8 @@ def cmd_hash(args):
 
 def main():
     for stream in (sys.stdout, sys.stderr):
-        try:
-            stream.reconfigure(errors="replace")
+        try:  # pipes (CI logs, Claude Code's Bash tool) get UTF-8 even under a cp936 / GBK locale
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
         except (AttributeError, ValueError):
             pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

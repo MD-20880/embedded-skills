@@ -1,15 +1,12 @@
 {
-  "description": "Engineering principles at session/subagent start, and registry hash reminders after edits; advisory only.",
+  "description": "Engineering principles at session/subagent start, and registry hash reminders after edits; advisory only. Runs via hooks/run-python.sh so python3 / python / py -3 all work (Windows included).",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py"
-            ],
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run-python.sh\" \"${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py\"",
             "timeout": 5
           }
         ]
@@ -20,10 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py"
-            ],
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run-python.sh\" \"${CLAUDE_PLUGIN_ROOT}/skills/engineering-principles/scripts/inject_principles.py\"",
             "timeout": 5
           }
         ]
@@ -35,10 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3",
-            "args": [
-              "${CLAUDE_PLUGIN_ROOT}/skills/artifact-conventions/scripts/integrity_reminder.py"
-            ],
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/run-python.sh\" \"${CLAUDE_PLUGIN_ROOT}/skills/artifact-conventions/scripts/integrity_reminder.py\"",
             "timeout": 5
           }
         ]

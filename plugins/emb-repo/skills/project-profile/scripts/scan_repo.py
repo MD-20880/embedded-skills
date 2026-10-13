@@ -210,6 +210,11 @@ def check(root, profile_path):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:  # pipes (Claude Code's Bash tool, CI logs) get UTF-8 even under a cp1252 / cp936 locale on Windows
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("root", nargs="?", default=".")
     ap.add_argument("--json", action="store_true", help="print JSON instead of Markdown")
