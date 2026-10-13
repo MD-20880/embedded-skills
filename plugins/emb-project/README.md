@@ -14,7 +14,7 @@
 
 | Skill | 调用方式 | 状态 | 作用 |
 | --- | --- | --- | --- |
-| [issue-tracking](skills/issue-tracking/SKILL.md) | `/emb-project:issue-tracking` | ✅ 已发布 | 四类 issue（问题、验证、缺陷、任务）的写法与关闭方式，证据等级 L0–L4，总览与阶段门禁检查 |
+| [issue-tracking](skills/issue-tracking/SKILL.md) | `/emb-project:issue-tracking` | ✅ 已发布 | 四类 issue（问题、验证、缺陷、任务）的写法与关闭方式，证据等级 L0–L4，总览、个人热点与阶段门禁检查 |
 | risk-register | `/emb-project:risk-register` | 📝 规划中 | 项目风险登记与跟踪：概率、影响、触发条件、应对措施、复核节奏 |
 | status-report | `/emb-project:status-report` | 📝 规划中 | 从 issue 总览生成周报 / 阶段状态汇报 |
 | change-control | `/emb-project:change-control` | 📝 规划中 | 设计变更（ECN）管理：变更原因、影响范围、涉及的板与版本、验证要求 |
@@ -36,7 +36,7 @@
 
 证据等级：L0 资料与计算 → L1 仿真与主机测试 → L2 台架实测 → L3 整机实测 → L4 认证与第三方测试。
 
-skill 提供 7 个工作流：新建、改写或迁移、判断能否关闭、记录结论、维护总览、阶段门禁检查、在项目中落地。所有改动外部系统的操作（新建、编辑、关闭 issue，打标签，发评论）都会先给你确认。
+skill 提供 8 个工作流：新建、改写或迁移、判断能否关闭、记录结论、维护总览、个人热点、阶段门禁检查、在项目中落地。所有改动外部系统的操作（新建、编辑、关闭 issue，打标签，发评论）都会先给你确认。
 
 - 完整方法：[references/method.md](skills/issue-tracking/references/method.md)
 - 完整示例（改写前后、能否关闭、DVT 门禁）：[references/examples.md](skills/issue-tracking/references/examples.md)

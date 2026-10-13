@@ -1,7 +1,7 @@
 ---
 name: issue-tracking
 description: 嵌入式产品开发的 issue 管理方式：把任务、open issue（待决问题）、验证项和缺陷写成一眼看出“完没完”的 issue，结论绑定板、硬件版本和固件版本，证据分 L0–L4 等级，并按 EVT/DVT/PVT/MP 截止节点做总览和阶段门禁检查。Issue management for embedded product development with per-type closure criteria, evidence levels and EVT/DVT/PVT/MP stage gates.
-when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写、拆分、分诊、复核或关闭 issue/工单时使用，即使用户没有点名；包括问“这个 issue 算不算完成”“验收条件怎么写”“能不能进 DVT”，抱怨任务指标太杂、看不出是否完成，要做 open issue 清单、验证矩阵、项目总览或阶段评审，或要给项目建立 issue 模板、标签和管理规范。适用于 GitHub、GitLab、Jira、飞书等任何工具。English triggers include "can we close this issue", "write acceptance criteria", "are we ready for DVT", "triage these issues", "set up issue templates and labels".
+when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写、拆分、分诊、复核或关闭 issue/工单时使用，即使用户没有点名；包括问“这个 issue 算不算完成”“验收条件怎么写”“能不能进 DVT”，抱怨任务指标太杂、看不出是否完成，要做 open issue 清单、验证矩阵、项目总览或阶段评审，想看自己近期在跟的热点 issue，或要给项目建立 issue 模板、标签和管理规范。适用于 GitHub、GitLab、Jira、飞书等任何工具。English triggers include "can we close this issue", "write acceptance criteria", "are we ready for DVT", "triage these issues", "set up issue templates and labels", "which issues am I focused on lately".
 ---
 
 # 嵌入式产品开发的 issue 管理方式
@@ -20,6 +20,7 @@ when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写�
 | `assets/templates/overview.md` | 总览模板（按状态、按截止节点、按对象三种视图） |
 | `assets/templates/gate-review.md` | 阶段门禁检查模板 |
 | `assets/github/*.yml` | GitHub issue 表单，复制到项目的 `.github/ISSUE_TEMPLATE/` 即可使用 |
+| `scripts/hotlist.py` | 个人热点：按本人近期的评论、PR、提交和指派给 open issue 打分排序（只读，GitHub） |
 
 ## 五条核心约定
 
@@ -110,7 +111,16 @@ when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写�
 
 再单独列出“需要补齐”：缺适用对象、截止节点、判据或决策人的 issue。一个 issue 阻塞了多个 issue 时，要在总览中标出来。
 
-### F. 阶段门禁检查
+### F. 个人热点
+
+用户想知道“我最近在跟哪些 issue”“把我手上最热的 issue 排出来”时，按 method.md 第 10.1 节：
+
+1. 仓库在 GitHub 上时运行 `python3 ${CLAUDE_SKILL_DIR}/scripts/hotlist.py --repo OWNER/NAME --user LOGIN`；`--user` 省略时取凭据对应的用户。其他工具按第 10.1 节的事件和权重人工排。
+2. 不要按“最近更新时间”排：批量改标签、改模板会刷新它。
+3. 输出“我的热点”前 10 名，每条带最近动作；与本人无关但很热的单列“团队热点”，不混进主表。
+4. 用户要定期收到时，建议用定时任务每天跑一次，把结果发到用户指定的地方；写回 issue（例如刷新置顶 issue）属于改动外部系统，先确认。
+
+### G. 阶段门禁检查
 
 用户问“能不能进入 DVT”或类似问题时，按 method.md 第 11 章和 `assets/templates/gate-review.md` 检查以下内容：
 
@@ -121,7 +131,7 @@ when_to_use: 在硬件、固件或电子产品项目里新建、撰写、改写�
 
 结论为三选一：可以进入、有条件进入、不能进入。把需要决策人拍板的事项列出来，不要替决策人做决定。
 
-### G. 在项目中落地
+### H. 在项目中落地
 
 1. 盘点项目现有的标签、模板和状态机制，按 method.md 第 13.1 节做映射。
 2. 需要时，把 `assets/github/*.yml` 或 `assets/templates/*.md` 复制进项目，并按项目的命名调整标签。

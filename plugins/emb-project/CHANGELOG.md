@@ -2,6 +2,14 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] - 2026-10-13
+
+### 新增
+
+- `issue-tracking` 新增工作流 F“个人热点”（method.md 第 10.1 节）：把本人近期参与最多的 open issue 排到前面，用来快速回到自己的焦点。按事件打分（本人评论、新开、PR 和提交引用、指派、@本人，他人评论权重低），按半衰期衰减；不按 issue 的更新时间排，避免批量改标签造成的失真。
+- 脚本 `scripts/hotlist.py`：只读，通过 GitHub GraphQL 取数，输出 Markdown 或 JSON；支持 `--input`/`--now` 离线运行。`selfcheck.py` 用假数据核对其排序和分组。
+- 原工作流 F、G 顺延为 G、H。
+
 ## [0.2.0] - 2026-10-06
 
 ### 变更
