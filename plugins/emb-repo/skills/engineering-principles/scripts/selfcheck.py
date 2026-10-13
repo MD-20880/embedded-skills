@@ -51,6 +51,11 @@ def run(event, option=None, base_env=None):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:  # UTF-8 in CI logs and pipes even under a cp1252 / cp936 locale on Windows
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
+        except (AttributeError, ValueError):
+            pass
     core = CORE.read_text(encoding="utf-8").strip()
     check(150 <= len(core) <= SESSION_LIMIT, f"core-principles.md 长度 {len(core)} 不在 150~{SESSION_LIMIT} 字符")
 

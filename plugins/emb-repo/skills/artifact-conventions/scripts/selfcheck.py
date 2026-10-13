@@ -104,6 +104,11 @@ def git(root, *args):
 
 
 def main():
+    for stream in (sys.stdout, sys.stderr):
+        try:  # UTF-8 in CI logs and pipes even under a cp1252 / cp936 locale on Windows
+            stream.reconfigure(errors="replace", **({} if stream.isatty() else {"encoding": "utf-8"}))
+        except (AttributeError, ValueError):
+            pass
     tmp = tempfile.mkdtemp(prefix="registry-selfcheck-")
     try:
         root = os.path.join(tmp, "repo")
