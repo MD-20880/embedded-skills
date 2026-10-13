@@ -18,6 +18,7 @@
 - **中文系统下 hook 输入输出乱码**：hook 原来按本地编码（cp936 / GBK）读 stdin、写 stdout，而 Claude Code 按 UTF-8 收发。现在一律按 UTF-8 读入；hash 提醒以 ASCII 转义的 JSON 输出，原则注入按 UTF-8 字节输出。项目路径含中文时提醒也能正确识别文件。
 - **hash 提醒给出的命令在 Windows 上不可用**：提示中的命令改为使用当前运行 hook 的 Python 解释器，路径用正斜杠并按需加引号，可直接在 Git Bash 中执行。
 - **`registry_check.py update` 改变登记表换行符**：原来在 Windows 上会把 LF 登记表整体改成 CRLF（Linux 上则相反），产生整文件 diff。现在保留文件原有的换行符。管道输出（CI 日志、Claude 的 Bash 工具）固定为 UTF-8。
+- **`project-profile` 的 `scan_repo.py` 在 Windows 上输出中文时崩溃**：英文 Windows（cp1252）下直接报 `UnicodeEncodeError`，中文 Windows 下输出为 GBK 而非 UTF-8。管道输出现固定为 UTF-8。
 - `tools/lint_skills.py` 以 UTF-8 运行并读取各 skill 自检的输出。
 
 ### 变更
