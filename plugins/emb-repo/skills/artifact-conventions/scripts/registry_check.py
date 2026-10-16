@@ -10,6 +10,8 @@ Usage:
     registry_check.py check  [--registry PATH] [--root DIR] [--base REF]
     registry_check.py update [--registry PATH] [--root DIR] (--all | ID ...) [--allow-frozen]
     registry_check.py hash   [--root DIR] PATH ...
+    registry_check.py history  [--registry PATH] [--root DIR] [--markdown] ID
+    registry_check.py baseline [--registry PATH] [--root DIR] [--markdown] [--ref REF]
 
 check   Every entry's path exists, its type is declared, ids are unique, and
         the file content matches the recorded sha256. With --base REF (for
@@ -21,6 +23,16 @@ update  Recompute and write sha256 for the given ids (or --all). Refuses to
         unless --allow-frozen (writing a first baseline hash is allowed). Only the
         `sha256:` line of each entry is touched; comments and order are kept.
 hash    Print the normalized sha256 of files (for debugging).
+history Trace one artifact through git: every commit that changed its registry
+        entry (registered, content hash, revision, status, path, removed) or its
+        file, oldest first. A commit that changed the file without touching the
+        entry is flagged; before the entry existed, file commits are listed as
+        pre-registration history. Read-only.
+baseline
+        Print the registry as of REF (default: the working tree) with each
+        entry's revision, status and hash, and whether the file content at REF
+        still matches the recorded hash. Meant to be archived with a release
+        tag as the controlled baseline. Read-only.
 
 Hashing: Git LFS pointer files contribute their recorded `oid sha256:`; files
 tracked by LFS or containing NUL bytes are hashed as raw bytes (matching the
@@ -46,7 +58,7 @@ import re
 import subprocess
 import sys
 
-TOOL_VERSION = "1.0"
+TOOL_VERSION = "1.1"
 DEFAULT_REGISTRY = "docs/engineering-artifacts.yaml"
 FROZEN = {"superseded", "archived"}
 LFS_POINTER = re.compile(rb"^version https://git-lfs\.github\.com/spec/v1\n(?:.*\n)*?oid sha256:([0-9a-f]{64})\n", re.M)
@@ -96,20 +108,35 @@ def git_ok(root, *args):
         return False
 
 
+def git_bytes(root, *args):
+    try:
+        return subprocess.run(["git", *args], cwd=root, capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def require_repo(root):
+    if git(root, "rev-parse", "--git-dir") is None:
+        die(f"{root} 不是 git 仓库；history / baseline 需要读取 git 历史")
+
+
 def lfs_tracked(root, rel):
     out = git(root, "check-attr", "filter", "--", rel)
     return bool(out) and out.strip().endswith(": lfs")
 
 
-def file_hash(root, rel):
-    with open(os.path.join(root, rel), "rb") as f:
-        data = f.read()
+def data_hash(root, rel, data):
     m = LFS_POINTER.match(data) if len(data) < 1024 else None
     if m:
         return m.group(1).decode()
     if b"\0" not in data and not lfs_tracked(root, rel):
         data = data.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
     return hashlib.sha256(data).hexdigest()
+
+
+def file_hash(root, rel):
+    with open(os.path.join(root, rel), "rb") as f:
+        return data_hash(root, rel, f.read())
 
 
 def read_registry(root, registry):
@@ -316,6 +343,188 @@ def cmd_update(args):
     return 0 if not skipped or updated else 1
 
 
+# ------------------------------------------------------------------ history / baseline
+
+FIELDS = ("path", "status", "revision", "sha256")
+SEP = "\x1f"
+
+
+def log(root, paths):
+    """Commits touching any of `paths`, oldest first: (sha, date, author, subject)."""
+    out = git(root, "log", "--reverse", "--date=short", f"--format=%H{SEP}%ad{SEP}%an{SEP}%s", "--", *paths)
+    if out is None:
+        die("git log 失败")
+    return [tuple(line.split(SEP, 3)) for line in out.splitlines() if line.count(SEP) == 3]
+
+
+def entry_at(root, rev, registry, aid):
+    """The entry with `aid` in the registry at `rev`; None if absent; False if the registry is unreadable."""
+    text = git(root, "show", f"{rev}:{registry}")
+    if text is None:
+        return None
+    try:
+        import yaml
+        data = yaml.safe_load(text) or {}
+    except Exception:  # an old, broken registry revision must not stop the trace
+        return False
+    if not isinstance(data, dict):
+        return False
+    arts = data.get("artifacts")
+    for e in arts if isinstance(arts, list) else []:
+        if isinstance(e, dict) and e.get("id") == aid:
+            return {k: (None if e.get(k) is None else str(e.get(k))) for k in FIELDS}
+    return None
+
+
+def short(h):
+    return (h or "")[:12] or "—"
+
+
+def describe(prev, cur):
+    if not prev and not cur:
+        return []
+    if not prev:
+        rev = f"，版本 {cur['revision']}" if cur.get("revision") else ""
+        return [f"登记：{cur['status']}{rev}，{cur['path']}"]
+    if prev and not cur:
+        return ["从登记表中移除"]
+    notes = []
+    if prev["path"] != cur["path"]:
+        notes.append(f"路径 {prev['path']} → {cur['path']}")
+    if prev["revision"] != cur["revision"]:
+        notes.append(f"版本 {prev['revision'] or '—'} → {cur['revision'] or '—'}")
+    if prev["status"] != cur["status"]:
+        notes.append(f"状态 {prev['status']} → {cur['status']}")
+    if prev["sha256"] != cur["sha256"]:
+        notes.append("内容哈希 " + (f"{short(prev['sha256'])} → {short(cur['sha256'])}" if prev["sha256"] else
+                                     f"写入基线 {short(cur['sha256'])}"))
+    return notes
+
+
+def hash_matches(root, rev, rel, recorded):
+    blob = git_bytes(root, "show", f"{rev}:{rel}")
+    return blob is not None and data_hash(root, rel, blob) == recorded
+
+
+def cell(text):
+    return str(text).replace("|", "\\|")
+
+
+def cmd_history(args):
+    require_repo(args.root)
+    _, data = read_registry(args.root, args.registry)
+    by_id = {e.get("id"): e for e in entries(data)}
+    reg_commits = log(args.root, [args.registry])
+    states, prev, seen = {}, None, False
+    for sha, *_ in reg_commits:  # the entry as of every commit that touched the registry
+        cur = entry_at(args.root, sha, args.registry, args.id)
+        if cur is False:
+            continue
+        states[sha] = cur
+    known = [s for s in states.values() if s]
+    if args.id not in by_id and not known:
+        die(f"当前登记表和历史中都没有 id `{args.id}`")
+    paths = sorted({s["path"] for s in known if s.get("path")} |
+                   ({str(by_id[args.id].get("path"))} if by_id.get(args.id, {}).get("path") else set()))
+    file_commits = {c[0] for c in log(args.root, paths)} if paths else set()
+    rows = []
+    for sha, date, author, subject in log(args.root, [args.registry, *paths]):
+        notes = []
+        if sha in states:
+            cur = states[sha]
+            notes = describe(prev, cur)
+            prev = cur
+            seen = seen or bool(cur)
+        if sha in file_commits:
+            if not prev:
+                notes = notes or ["文件改动（已移出登记表）" if seen else "文件改动（登记前）"]
+            elif prev["sha256"] and not hash_matches(args.root, sha, prev["path"], prev["sha256"]):
+                notes.append("文件内容与登记的哈希不一致（改了文件但没有更新登记）")
+            elif not notes:
+                notes = ["文件改动"]
+        if notes:
+            rows.append((date, sha[:9], author, "；".join(notes), subject))
+    title = f"{args.id}  " + (f"{by_id[args.id].get('type')}  {by_id[args.id].get('path')}" if args.id in by_id
+                              else "（当前登记表中已没有该条目）")
+    if args.markdown:
+        print(f"### {title}\n")
+        print("| 日期 | 提交 | 作者 | 变化 | 提交说明 |")
+        print("| --- | --- | --- | --- | --- |")
+        for r in rows:
+            print("| " + " | ".join(cell(x) for x in r) + " |")
+    else:
+        print(title)
+        for date, sha, author, notes, subject in rows:
+            print(f"{date}  {sha}  {author}  {notes}\n            {subject}")
+    if not rows:
+        print("没有找到相关提交（文件或登记表尚未提交？）")
+    return 0
+
+
+def cmd_baseline(args):
+    if args.ref:
+        require_repo(args.root)
+        commit = git(args.root, "rev-parse", "--verify", "--quiet", f"{args.ref}^{{commit}}")
+        if commit is None:
+            die(f"无法读取 `{args.ref}`：引用不存在或未 fetch")
+        commit = commit.strip()
+        text = git(args.root, "show", f"{commit}:{args.registry}")
+        if text is None:
+            die(f"{args.ref} 中没有 {args.registry}")
+        data = load_yaml(text, f"{args.ref}:{args.registry}")
+        when = (git(args.root, "show", "-s", "--format=%ad", "--date=short", commit) or "").strip()
+        source = f"{args.ref}（{commit[:12]}，{when}）"
+
+        def content(rel):
+            return git_bytes(args.root, "show", f"{commit}:{rel}")
+    else:
+        _, data = read_registry(args.root, args.registry)
+        head = git(args.root, "rev-parse", "--short=12", "HEAD")
+        dirty = bool((git(args.root, "status", "--porcelain") or "").strip()) if head else False
+        source = "工作区" + (f"（HEAD {head.strip()}{'，有未提交改动' if dirty else ''}）" if head else "")
+
+        def content(rel):
+            path = os.path.join(args.root, rel)
+            if not os.path.isfile(path):
+                return None
+            with open(path, "rb") as f:
+                return f.read()
+    integrity = data.get("integrity") == "sha256"
+    rows, mismatched = [], 0
+    for e in entries(data):
+        rel, recorded = e.get("path"), str(e.get("sha256") or "")
+        blob = content(rel) if rel else None
+        if blob is None:
+            state = "文件缺失"
+        elif not integrity:
+            state = "—"
+        elif not HEX64.match(recorded):
+            state = "无哈希"
+        else:
+            state = "一致" if data_hash(args.root, rel, blob) == recorded else "不一致"
+        mismatched += state not in ("一致", "—")
+        scope = e.get("scope")
+        rows.append((e.get("id"), e.get("type"), e.get("status"), e.get("revision") or "—",
+                     ", ".join(map(str, scope)) if isinstance(scope, list) else scope, rel, short(recorded), state))
+    counts = {}
+    for r in rows:
+        counts[r[2]] = counts.get(r[2], 0) + 1
+    summary = (f"{len(rows)} 个条目（" + "，".join(f"{k} {v}" for k, v in sorted(counts.items(), key=lambda kv: str(kv[0]))) +
+               f"）；覆盖：{data.get('coverage', '未声明')}；完整性：{'sha256' if integrity else '未启用'}" +
+               (f"；{mismatched} 个条目与登记不符" if mismatched else ""))
+    if args.markdown:
+        print(f"## 受控基线：{source}\n\n{summary}\n")
+        print("| 编号 | 类型 | 状态 | 版本 | 范围 | 路径 | sha256 | 校验 |")
+        print("| --- | --- | --- | --- | --- | --- | --- | --- |")
+        for r in rows:
+            print("| " + " | ".join(cell(x) for x in r) + " |")
+    else:
+        print(f"受控基线：{source}\n{summary}")
+        for r in rows:
+            print("  ".join(str(x) for x in r))
+    return 1 if mismatched else 0
+
+
 def cmd_hash(args):
     for rel in args.paths:
         print(f"{file_hash(args.root, rel)}  {rel}")
@@ -331,9 +540,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", action="version", version=f"registry_check {TOOL_VERSION}")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("check", "update", "hash"):
+    for name in ("check", "update", "hash", "history", "baseline"):
         p = sub.add_parser(name)
         p.add_argument("--root", default=".", help="项目根目录（默认当前目录）")
+        if name in ("history", "baseline"):
+            p.add_argument("--markdown", action="store_true", help="输出 Markdown 表格")
+        if name == "history":
+            p.add_argument("id")
+        if name == "baseline":
+            p.add_argument("--ref", help="提交、分支或标签，如 v0.2.0；默认读取工作区")
         if name != "hash":
             p.add_argument("--registry", default=DEFAULT_REGISTRY, help=f"登记表路径（默认 {DEFAULT_REGISTRY}）")
         if name == "check":
@@ -346,7 +561,8 @@ def main():
             p.add_argument("paths", nargs="+")
     args = ap.parse_args()
     args.root = os.path.abspath(args.root)
-    return {"check": cmd_check, "update": cmd_update, "hash": cmd_hash}[args.cmd](args)
+    return {"check": cmd_check, "update": cmd_update, "hash": cmd_hash,
+            "history": cmd_history, "baseline": cmd_baseline}[args.cmd](args)
 
 
 if __name__ == "__main__":

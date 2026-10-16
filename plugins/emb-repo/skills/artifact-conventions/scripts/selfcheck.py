@@ -4,7 +4,8 @@
 Builds throw-away registries in a temporary directory and checks: opt-in,
 missing / matching / changed hashes, update keeping comments and order,
 frozen entries (with and without --base), CRLF normalization, Git LFS
-pointers, binary files, duplicate ids and both YAML list indent styles.
+pointers, binary files, duplicate ids, both YAML list indent styles, and the
+history / baseline traces over a throw-away git history.
 Prints `FAIL ...` lines and exits 1 on failure.
 """
 import hashlib
@@ -254,6 +255,52 @@ def main():
             r = run(root6, "check", "--base", "HEAD")
             check(r.returncode == 0 and "首次启用" in r.stdout, "首次启用时基线没有登记表应提示并通过")
 
+            # history / baseline：按提交追溯条目与文件的变化，导出某个引用上的基线
+            rh = os.path.join(tmp, "history")
+            reg = ("integrity: sha256\ntypes:\n  specification: {{purpose: s}}\nartifacts:\n  - id: S-1\n"
+                   "    type: specification\n    path: {path}\n    status: {status}\n    scope: [project]\n"
+                   "    revision: \"{rev}\"\n")
+            write(rh, "docs/s.md", "v0\n")
+            git(rh, "init", "-q")
+            git(rh, "add", "-A")
+            git(rh, "commit", "-qm", "before registry")
+            write(rh, "docs/engineering-artifacts.yaml", reg.format(path="docs/s.md", status="draft", rev="0.1"))
+            run(rh, "update", "S-1")
+            git(rh, "add", "-A")
+            git(rh, "commit", "-qm", "register")
+            git(rh, "tag", "base")
+            write(rh, "docs/s.md", "v1, unregistered\n")
+            git(rh, "commit", "-qam", "edit without registry")
+            r = run(rh, "baseline", "--ref", "HEAD")
+            check(r.returncode == 1 and "不一致" in r.stdout, "baseline --ref 应发现该引用上文件与登记哈希不符")
+            write(rh, "docs/engineering-artifacts.yaml", reg.format(path="docs/s.md", status="active", rev="1.0"))
+            run(rh, "update", "S-1")
+            git(rh, "commit", "-qam", "release 1.0")
+            git(rh, "mv", "docs/s.md", "docs/spec.md")
+            write(rh, "docs/engineering-artifacts.yaml", reg.format(path="docs/spec.md", status="active", rev="1.0"))
+            run(rh, "update", "S-1")
+            git(rh, "commit", "-qam", "move")
+            r = run(rh, "history", "S-1")
+            out = r.stdout
+            check(r.returncode == 0, f"history 应成功：{r.stderr}")
+            check("登记前" in out and "登记：draft" in out, "history 应列出登记前的文件提交和登记事件")
+            check("没有更新登记" in out, "history 应标出改了文件却没更新登记的提交")
+            move = [l for l in out.splitlines() if "路径 docs/s.md" in l]
+            check(move and "没有更新登记" not in move[0], "纯改名且已更新登记的提交不应被标为未更新登记")
+            check("版本 0.1 → 1.0" in out and "状态 draft → active" in out and "内容哈希" in out,
+                  "history 应列出版本、状态与内容哈希的变化")
+            check("路径 docs/s.md → docs/spec.md" in out, "history 应跟随登记表中的路径变化")
+            check(out.index("before registry") < out.index("move"), "history 应按时间从早到晚排列")
+            r = run(rh, "history", "S-1", "--markdown")
+            check(r.stdout.count("\n| 20") >= 5, "history --markdown 应每个事件一行表格")
+            check(run(rh, "history", "NOPE").returncode == 2, "history 未知 id 应以退出码 2 报错")
+            r = run(rh, "baseline", "--ref", "base", "--markdown")
+            check(r.returncode == 0 and "| S-1 |" in r.stdout and "0.1" in r.stdout and "一致" in r.stdout,
+                  "baseline --ref 应输出该标签上的条目、版本与校验结果")
+            r = run(rh, "baseline")
+            check(r.returncode == 0 and "1.0" in r.stdout and "docs/spec.md" in r.stdout, "baseline 默认读取工作区")
+            check(run(rh, "baseline", "--ref", "no-such-tag").returncode == 2, "baseline 无效引用应以退出码 2 报错")
+
         # (4) hook：多行 scope 列表、字段顺序不同、嵌套映射都不影响状态识别
         root7 = os.path.join(tmp, "hook-nested")
         write(root7, "docs/old.md", "old\n")
@@ -381,7 +428,7 @@ def main():
         print("FAIL " + f)
     if failures:
         return 1
-    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, reminders, review regressions (2 rounds)")
+    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, history, baseline, reminders, review regressions (2 rounds)")
     return 0
 
 

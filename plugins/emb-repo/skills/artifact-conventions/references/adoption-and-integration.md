@@ -52,6 +52,7 @@
 - 修改受控文件 → `python3 tools/registry_check.py update <id>` → 与文件改动一起提交；
 - CI 失败提示“内容与登记的 sha256 不一致” → 确认改动是有意的，再更新 hash；不是有意的，撤销改动；
 - CI 失败提示“已冻结” → 不要修改归档或已被取代的文件，新建修订并用 `supersedes` 取代。
+- 追溯某份文件的变化 → `python3 tools/registry_check.py history <id>`；阶段发布打标签时 → `python3 tools/registry_check.py baseline --ref <标签> --markdown`，把输出存入发布记录。见 [registry-format.md 第 6.3 节](registry-format.md#63-追溯与基线导出)。
 
 ## 原则传播
 
