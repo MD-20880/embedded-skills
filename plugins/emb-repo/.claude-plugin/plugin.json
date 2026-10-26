@@ -1,7 +1,7 @@
 {
   "name": "emb-repo",
   "displayName": "Embedded Repo",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "嵌入式项目基础：工程默认原则、受管理文件登记约定、项目画像和仓库管理。Embedded foundations: principles, engineering artifact registry conventions, project profile, repo management.",
   "author": {
     "name": "MD-20880"
