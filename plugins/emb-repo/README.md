@@ -28,8 +28,8 @@
 
 | 时机 | 注入内容 | 大约体积 | 开关 |
 | --- | --- | --- | --- |
-| 会话开始（`SessionStart`） | 完整的 [轻量工程原则](skills/engineering-principles/references/core-principles.md)（7 条） | 约 2K 字符 | `inject_principles` |
-| 子 Agent 启动（`SubagentStart`） | 一行精简版：7 条原则的标题 | 约 200 字符 | `inject_principles` |
+| 会话开始（`SessionStart`） | 完整的 [轻量工程原则](skills/engineering-principles/references/core-principles.md)（8 条） | 约 2K 字符 | `inject_principles` |
+| 子 Agent 启动（`SubagentStart`） | 一行精简版：8 条原则的标题 | 约 200 字符 | `inject_principles` |
 | 编辑文件后（`PostToolUse`，Edit / Write） | 仅当改的是**启用了 hash 校验的受控文件**时：提示更新 hash，或提示该文件已冻结、应撤销 | 约 200 字符，其余情况不输出 | `integrity_reminders` |
 
 hook 只读取插件自身文件和项目登记表，不审批、不拦截、不写入仓库、不访问网络。编辑提醒在编辑完成后才送达，所以它不能阻止编辑，只能让 Claude 立即补上 hash 或撤销；最终由项目 CI 把关。需要完整说明时，调用 `/emb-repo:engineering-principles`；普通编码任务不会因此被要求写管理报告。
