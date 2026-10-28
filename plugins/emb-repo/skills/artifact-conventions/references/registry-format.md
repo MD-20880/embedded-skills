@@ -39,7 +39,7 @@ YAML 用于可读、可 diff、可由程序解析。文件一旦登记，说明�
 
 `scope` 推荐使用非空字符串列表，以 `["project"]` 表示全项目，或 `["product:alpha", "board:rev-b"]` 表示限定范围。范围待核实时显式标注 `["pending"]`，**不能把 pending 当成无限适用**；状态推进到 `active` 前需要确认范围。项目可自定义可机器识别的维度词表，不要求所有项目同一套板卡标识。
 
-可选字段：`revision`（按类型要求，不强制统一 SemVer）、`supersedes`、`source`（来源说明，如外部原件的下载地址或导出自哪份在线文档）、`owner`、`verified_by` 等；仅当实际有依据时记录。不要编造不存在的依赖关系或验收记录。项目启用完整性校验后，每个条目还有由工具写入的 `sha256`，见第 6 节。
+可选字段：`revision`（按类型要求，不强制统一 SemVer）、`supersedes`、`depends_on`、`refines`、`verifies`、`layer`（关系与层见第 7 节）、`source`（来源说明，如外部原件的下载地址或导出自哪份在线文档）、`owner`、`verified_by` 等；仅当实际有依据时记录。不要编造不存在的依赖关系或验收记录。项目启用完整性校验后，每个条目还有由工具写入的 `sha256`，见第 6 节。
 
 ## 3. 登记表与文档内信息的权威分层
 
@@ -135,3 +135,55 @@ artifacts:
 ### 6.4 hash 不等于审批
 
 hash 变化只说明“受控文件变了”，**不说明改得对、也不说明已经批准**：任何人都能运行 `update`。它的作用是让每一次受控文件的改动都在 PR 的登记表 diff 中显式出现，便于评审。需要强制由特定的人把关时，再配合仓库的评审规则，例如为登记表设置 CODEOWNERS（模板见 `assets/ci/CODEOWNERS.example`）。类型专属的批准（ADR Accepted、协议批准）仍按第 3 节由专业流程负责。
+
+## 7. 条目之间的关系（可选）
+
+登记表可以记录条目之间的关系，用来回答“改这份文件会影响谁”“这份验证验的是什么”，并发现文档分层被打破的地方。只记录真实存在的关系，不为凑完整而补。
+
+### 7.1 关系字段
+
+值是编号或编号列表，指向登记表中的其他条目：
+
+| 字段 | 含义 | 例子 |
+| --- | --- | --- |
+| `depends_on` | 本文件的内容依赖对方的内容：引用了对方的数值、契约或结论 | 音频模块设计依赖链路线格式；联合预算依赖各模块设计 |
+| `refines` | 本文件把对方细化为更具体的设计或规范 | 模块设计细化某条系统需求 |
+| `verifies` | 本文件是对方的验证计划或证据 | 一份验收记录验证联合运行设计 |
+| `supersedes` | 本文件取代对方（对方应为 `superseded`） | 新版协议取代旧版 |
+
+### 7.2 层（可选）
+
+项目要检查文档分层时，在顶层声明 `layers`，为每个类型给默认层，个别条目用自己的 `layer` 覆盖（例如同为 `design`，联合文档在系统层、模块文档在模块层）：
+
+```yaml
+layers:
+  product:   {may_depend_on: []}
+  system:    {may_depend_on: [product, module, interface]}
+  module:    {may_depend_on: [product, interface]}
+  interface: {may_depend_on: [product]}
+types:
+  requirement:   {purpose: "...", layer: product}
+  design:        {purpose: "...", layer: module}
+  specification: {purpose: "...", layer: interface}
+artifacts:
+  - id: SYS-LINK-001
+    type: design
+    layer: system
+    depends_on: [AUD-001, DISP-001, IF-LINK-001]
+    # 其余字段略
+```
+
+`may_depend_on` 列出本层的 `depends_on` 可以指向哪些层；没列自己就表示同层之间不互相依赖（例如模块之间不互相引用参数，见 `/emb-repo:engineering-principles` 的文档边界）。层名和规则由项目定，上面只是示例。没有声明 `layers` 时不做方向检查。
+
+### 7.3 检查
+
+`registry_check.py relations` 只读，不要求启用 `integrity`：
+
+| 级别 | 内容 | 退出码 |
+| --- | --- | --- |
+| FAIL | 取值不是编号或编号列表；指向不存在的编号；指向自己；`supersedes` 成环；条目或 `may_depend_on` 用了未声明的层 | 1 |
+| WARN | `depends_on` 或 `refines` 成环；`depends_on` 指向本层 `may_depend_on` 不允许的层 | 0 |
+
+FAIL 是登记表本身写错了；WARN 是需要人判断的设计信号，例如模块文档依赖另一个模块，通常说明某个参数该上移到联合文档。WARN 不阻断合入，按第 5 节“建议而非强制门禁”处理。
+
+`relations --of <id>` 列出该条目指向的条目和指向它的条目，改动前用来查影响范围；加 `--markdown` 输出表格。`check` 的行为不受关系字段影响。

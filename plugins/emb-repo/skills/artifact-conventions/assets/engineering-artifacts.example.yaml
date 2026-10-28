@@ -25,6 +25,8 @@ artifacts:
     path: docs/design/link-architecture.md
     status: draft
     scope: ["project"]
+    # 可选关系字段（registry-format.md 第 7 节）：只写真实存在的关系
+    depends_on: [SPEC-LINK-001]
 
   - id: SPEC-LINK-001
     type: specification

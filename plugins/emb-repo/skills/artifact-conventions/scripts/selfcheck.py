@@ -421,6 +421,62 @@ def main():
         check(r.returncode == 2, "未声明 integrity 时 update 应拒绝")
         write(root3, "docs/x.md", "x\n")
         check(remind(root3, "docs/x.md")[1] == "", "未启用 integrity 的项目不应提醒")
+
+        # relations: works without integrity; FAIL vs WARN; layer defaults from type, entry override
+        root4 = os.path.join(tmp, "relations")
+        rel_head = """schema_version: 1
+layers:
+  product: {may_depend_on: []}
+  system: {may_depend_on: [product, module, interface]}
+  module: {may_depend_on: [product, interface]}
+  interface: {may_depend_on: [product]}
+types:
+  requirement: {purpose: r, layer: product}
+  design: {purpose: d, layer: module}
+  specification: {purpose: s, layer: interface}
+  verification: {purpose: v}
+artifacts:
+  - {id: REQ-1, type: requirement, path: r.md, status: active, scope: [project]}
+  - {id: IF-1, type: specification, path: i.md, status: active, scope: [project]}
+  - {id: AUD-1, type: design, path: a.md, status: active, scope: [project], depends_on: [IF-1], refines: REQ-1}
+  - {id: SYS-1, type: design, layer: system, path: s.md, status: draft, scope: [project], depends_on: [AUD-1, IF-1]}
+  - {id: VER-1, type: verification, path: v.md, status: draft, scope: [project], verifies: [SYS-1]}
+"""
+        write(root4, "docs/engineering-artifacts.yaml", rel_head)
+        r = run(root4, "relations")
+        check(r.returncode == 0 and "FAIL" not in r.stdout and "WARN" not in r.stdout and "5 条关系" in r.stdout,
+              f"合规的关系应通过且无提醒：{r.stdout}")
+        r = run(root4, "check")
+        check(r.returncode == 0 and "跳过" in r.stdout, "增加关系字段后，未声明 integrity 的 check 行为不变")
+        r = run(root4, "relations", "--of", "AUD-1")
+        check("依赖 IF-1" in r.stdout and "细化 REQ-1" in r.stdout and "SYS-1 依赖" in r.stdout,
+              f"--of 应列出指向与被指向：{r.stdout}")
+        r = run(root4, "relations", "--of", "AUD-1", "--markdown")
+        check("| 被指向 | 依赖 | SYS-1 |" in r.stdout, "--of --markdown 应输出表格")
+        write(root4, "docs/engineering-artifacts.yaml", rel_head + """  - {id: NFC-1, type: design, path: n.md, status: draft, scope: [project], depends_on: [AUD-1, SYS-1]}
+  - {id: X-1, type: design, path: x.md, status: draft, scope: [project], depends_on: X-2}
+  - {id: X-2, type: design, layer: system, path: y.md, status: draft, scope: [project], depends_on: [X-1]}
+""")
+        r = run(root4, "relations")
+        check(r.returncode == 0 and "WARN NFC-1（module）depends_on AUD-1（module）" in r.stdout
+              and "WARN NFC-1（module）depends_on SYS-1（system）" in r.stdout,
+              f"模块依赖模块、模块依赖系统层应只提醒：{r.stdout}")
+        check("WARN depends_on 成环" in r.stdout, "depends_on 成环应只提醒")
+        write(root4, "docs/engineering-artifacts.yaml", rel_head + """  - {id: OLD-1, type: design, path: o.md, status: superseded, scope: [project], supersedes: NEW-1}
+  - {id: NEW-1, type: design, path: n.md, status: active, scope: [project], supersedes: [OLD-1]}
+  - {id: BAD-1, type: design, layer: board, path: b.md, status: draft, scope: [project], depends_on: [GONE-1, BAD-1], verifies: 3}
+""")
+        r = run(root4, "relations")
+        for frag, msg in (("FAIL supersedes 成环", "supersedes 成环应失败"),
+                          ("`GONE-1` 不在登记表中", "指向不存在的编号应失败"),
+                          ("BAD-1: depends_on 指向自己", "自指应失败"),
+                          ("BAD-1: verifies 应为编号或编号列表", "非法取值应失败"),
+                          ("层 `board` 未在 layers 中声明", "未声明的层应失败")):
+            check(frag in r.stdout, msg)
+        check(r.returncode == 1, "有 FAIL 时 relations 应以 1 退出")
+        write(root4, "docs/engineering-artifacts.yaml", rel_head.replace("layers:", "old_layers:"))
+        r = run(root4, "relations")
+        check(r.returncode == 0 and "WARN" not in r.stdout, "未声明 layers 时不做方向检查")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -428,7 +484,7 @@ def main():
         print("FAIL " + f)
     if failures:
         return 1
-    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, history, baseline, reminders, review regressions (2 rounds)")
+    print("PASS registry_check + integrity_reminder: opt-in, hashes, update, frozen, CRLF, LFS, binary, duplicates, history, baseline, relations, reminders, review regressions (2 rounds)")
     return 0
 
 

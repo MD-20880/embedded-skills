@@ -106,9 +106,13 @@ claude plugin eval . --scaffold --allow-tools Write "Bash(python3 *)" "Bash(git 
 | emb-repo | `artifact-conventions/integrity-update` | 1.00（3 次，2026-10-12；hook 改经 `run-python.sh` 启动后 2 次，2026-10-13；需 `--scaffold --allow-tools Write Edit Bash`） |
 | emb-repo | `artifact-conventions/integrity-frozen` | 1.00（3 次，2026-10-12；hook 改经 `run-python.sh` 启动后 2 次，2026-10-13；同上） |
 | emb-repo | `artifact-conventions/external-not-managed` | 装插件 1.00 / 不装插件 0.00，Δ +1.00（各 3 次，2026-10-13；需 `--scaffold --allow-tools Write Edit`） |
+| emb-repo | `engineering-principles/module-doc-boundary` | 1.00（1 次，2026-10-28；需 `--scaffold`） |
 | emb-project | `issue-tracking/close-check-checklist-done` | 1.00（3 次） |
 | emb-project | `issue-tracking/gate-review-dvt` | 1.00（3 次） |
 | emb-project | `issue-tracking/no-trigger-driver-code` | 1.00（3 次） |
 | emb-project | `issue-tracking/triage-symptom-vs-risk` | 1.00（1 次） |
 | emb-design | `adr-write/supersede-needs-confirm` | 1.00（1 次） |
 | emb-design | `adr-write/no-trigger` | 1.00（1 次） |
+| emb-project | `agent-tasks/split-stage` | 1.00（1 次，2026-10-28） |
+| emb-project | `agent-tasks/accept-hw-pr` | 1.00（1 次，2026-10-28） |
+| emb-project | `agent-tasks/no-trigger` | 1.00（1 次，2026-10-28） |

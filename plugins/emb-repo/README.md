@@ -71,6 +71,7 @@ hook 只读取插件自身文件和项目登记表，不审批、不拦截、不
 - hash 只说明“受控文件变了”，不代表改动已批准；需要指定把关人时，配合 CODEOWNERS（模板见 `skills/artifact-conventions/assets/ci/`）。
 - 启用步骤（复制工具与 CI 模板、写入基线）：[adoption-and-integration.md](skills/artifact-conventions/references/adoption-and-integration.md#启用完整性校验项目可选)；规则细节：[registry-format.md 第 6 节](skills/artifact-conventions/references/registry-format.md#6-完整性校验可选由项目启用)。
 - 追溯与基线：`registry_check.py history <id>` 列出一份受控文件历次的改动（含改了文件却没更新登记的提交），`baseline --ref <标签>` 导出某个版本的受控基线清单；见 [registry-format.md 第 6.3 节](skills/artifact-conventions/references/registry-format.md#63-追溯与基线导出)。
+- 条目之间的关系：登记表可写 `depends_on`、`refines`、`verifies`、`supersedes`，并按层声明允许的依赖方向；`registry_check.py relations` 检查悬空引用和取代成环（失败），以及依赖成环、跨层方向不对（只提醒）；`relations --of <id>` 列出改动影响范围。
 - 未声明 `integrity` 的项目不受影响。
 
 ## 依赖的项目画像章节

@@ -3,7 +3,7 @@ name: artifact-conventions
 description: 在创建、修改或整理工程文件时，辨别项目声明的受管理工程资产类型，说明 YAML 登记索引、稳定身份、状态、范围与生命周期的轻量约定，并指出需同步登记的文件。Recognize managed engineering artifact types and maintain a lightweight project registry of their identity and lifecycle.
 when_to_use: 创建工程文档、增加协议规范、更新设计方案、登记 ADR、收录验证报告、迁移受管理文件、建立工程文件索引、整理项目的受管理资产类型、把文件设为受控或纳入文控时使用；"create a design document", "register an engineering artifact", "manage technical documents", "put a document under document control". 普通源码、临时脚本、随手笔记等不需要单独触发此 Skill。
 argument-hint: "[新建/修改的文件或工程文件管理问题]"
-allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python tools/registry_check.py check *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(py -3 tools/registry_check.py check *) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(python3 tools/registry_check.py history *) Bash(python3 tools/registry_check.py baseline *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(python tools/registry_check.py history *) Bash(python tools/registry_check.py baseline *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(py -3 tools/registry_check.py history *) Bash(py -3 tools/registry_check.py baseline *)
+allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python3 tools/registry_check.py check *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(python tools/registry_check.py check *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py check *) Bash(py -3 tools/registry_check.py check *) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(python3 tools/registry_check.py history *) Bash(python3 tools/registry_check.py baseline *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(python tools/registry_check.py history *) Bash(python tools/registry_check.py baseline *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py history *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py baseline *) Bash(py -3 tools/registry_check.py history *) Bash(py -3 tools/registry_check.py baseline *) Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py relations *) Bash(python3 tools/registry_check.py relations *) Bash(python ${CLAUDE_SKILL_DIR}/scripts/registry_check.py relations *) Bash(python tools/registry_check.py relations *) Bash(py -3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py relations *) Bash(py -3 tools/registry_check.py relations *)
 ---
 
 # 工程文件管理约定（artifact-conventions）
@@ -16,7 +16,7 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
 - [内置类型与项目扩展、非纳管边界](references/type-guide.md)
 - [创建、修订、迁移与专业 Skills 集成](references/adoption-and-integration.md)
 - [可复制的最小 YAML 示例](assets/engineering-artifacts.example.yaml)
-- 完整性校验工具：`python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py {check|update|hash|history|baseline}`（Windows 上没有 `python3` 时用 `python` 或 `py -3`）；项目 CI 模板见 `assets/ci/`
+- 完整性校验工具：`python3 ${CLAUDE_SKILL_DIR}/scripts/registry_check.py {check|update|hash|history|baseline|relations}`（Windows 上没有 `python3` 时用 `python` 或 `py -3`）；项目 CI 模板见 `assets/ci/`
 
 ## 输入与产出
 
@@ -65,7 +65,7 @@ allowed-tools: Read Glob Grep Bash(python3 ${CLAUDE_SKILL_DIR}/scripts/registry_
 
 1. `/emb-repo:engineering-principles` 说明工程认知；本 Skill 说明受管理文件的身份、类型、登记和生命周期，互不代替。
 2. 创建具体 ADR 用 `/emb-design:adr-write`；处理 Issue 用 `/emb-project:issue-tracking`；协议、测试、索引编写交给项目已安装的对应专业能力。其他 Skill 创建受管理文件时可引用本约定，同时登记。
-3. 新建或修订设计文档时，内容归属按 `/emb-repo:engineering-principles` 的文档边界判断：模块文档只写本模块，跨模块的合计、优先级和取舍放进联合文档并单独登记。
+3. 新建或修订设计文档时，内容归属按 `/emb-repo:engineering-principles` 的文档边界判断：模块文档只写本模块，跨模块的合计、优先级和取舍放进联合文档并单独登记。条目之间有真实的依赖、细化、验证、取代关系时，按 [registry-format.md 第 7 节](references/registry-format.md#7-条目之间的关系可选) 写进登记表，用只读的 `relations` 检查；改动一份文件前可用 `relations --of <id>` 查看哪些条目指向它。不编造关系。
 4. 对普通源码、构建脚本、临时日志、草图、临时笔记或未声明纳管的文件，不要求登记，也不要求使用某种模板。
 5. 答复顺序：**是否纳管（依据）→ 登记位置/需同步的字段 → 尚需确认的状态或范围 → 必要的下一步**；普通任务只给出最简判断，不输出冗长流程报告。
 
