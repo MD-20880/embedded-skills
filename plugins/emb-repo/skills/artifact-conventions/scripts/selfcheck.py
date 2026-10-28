@@ -477,6 +477,11 @@ artifacts:
         write(root4, "docs/engineering-artifacts.yaml", rel_head.replace("layers:", "old_layers:"))
         r = run(root4, "relations")
         check(r.returncode == 0 and "WARN" not in r.stdout, "未声明 layers 时不做方向检查")
+        chain = "".join(f"  - {{id: C{i}, type: design, path: c.md, status: draft, scope: [project]"
+                        f"{', depends_on: [C%d]' % (i + 1) if i < 1999 else ''}}}\n" for i in range(2000))
+        write(root4, "docs/engineering-artifacts.yaml", "types: {design: {purpose: d}}\nartifacts:\n" + chain)
+        r = run(root4, "relations")
+        check(r.returncode == 0 and "1999 条关系" in r.stdout, f"2000 个条目的长依赖链不应超出递归深度：{r.stderr[-200:]}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

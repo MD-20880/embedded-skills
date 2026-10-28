@@ -544,28 +544,24 @@ REL_NAME = {"depends_on": "依赖", "refines": "细化", "verifies": "验证", "
 
 
 def find_cycle(edges):
-    """Return one cycle in `edges` (id -> [id]) as a list of ids, or None."""
-    state, stack = {}, []
-
-    def visit(n):
-        state[n] = 1
-        stack.append(n)
-        for m in edges.get(n, []):
-            if state.get(m) == 1:
-                return stack[stack.index(m):] + [m]
-            if m not in state:
-                found = visit(m)
-                if found:
-                    return found
-        stack.pop()
-        state[n] = 2
-        return None
-
-    for n in sorted(edges):
-        if n not in state:
-            found = visit(n)
-            if found:
-                return found
+    """Return one cycle in `edges` (id -> [id]) as a list of ids, or None. Iterative: no recursion limit."""
+    state = {}
+    for start in sorted(edges):
+        if start in state:
+            continue
+        state[start] = 1
+        path, todo = [start], [iter(edges.get(start, []))]
+        while todo:
+            m = next(todo[-1], None)
+            if m is None:
+                state[path.pop()] = 2
+                todo.pop()
+            elif state.get(m) == 1:
+                return path[path.index(m):] + [m]
+            elif m not in state:
+                state[m] = 1
+                path.append(m)
+                todo.append(iter(edges.get(m, [])))
     return None
 
 
