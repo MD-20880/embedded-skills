@@ -2,6 +2,22 @@
 
 格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.8.0] - 2026-10-28
+
+### 新增
+
+- `artifact-conventions`：登记表可以记录条目之间的关系（`registry-format.md` 新增第 7 节）。
+  - 关系字段 `depends_on`、`refines`、`verifies`、`supersedes`，值为编号或编号列表。
+  - 可选的层：顶层 `layers` 声明各层及其 `depends_on` 允许指向的层（`may_depend_on`），类型给默认层，条目用 `layer` 覆盖。没有 `layers` 时不做方向检查。
+- `registry_check.py relations`（工具版本 1.1 → 1.2）：只读，不要求启用 `integrity`。
+  - FAIL（退出码 1）：取值不合法、指向不存在的编号、指向自己、`supersedes` 成环、未声明的层。
+  - WARN（退出码 0）：`depends_on` 或 `refines` 成环、`depends_on` 跨层方向不被允许。方向问题只提醒，不阻断合入。
+  - `--of <id>` 列出该条目指向的和指向它的条目，用于改动前查影响范围；支持 `--markdown`。
+  - `check`、`update`、`hash`、`history`、`baseline` 行为不变；已复制到项目中的旧版本可继续使用，需要新命令时整体替换。
+- `selfcheck.py` 覆盖 relations：合规关系、`--of`、模块依赖模块与模块依赖系统层的提醒、依赖成环、取代成环、悬空引用、自指、非法取值、未声明的层、未声明 `layers` 时不检查方向。
+- SKILL 第 5 节、`adoption-and-integration.md`、插件 README 与示例登记表同步；`allowed-tools` 增加只读的 `relations` 命令。
+- 来源：实际项目的文档分层整理中，需要从登记表直接看出模块文档之间互相引用参数、联合文档依赖哪些模块。
+
 ## [0.7.0] - 2026-10-28
 
 ### 新增

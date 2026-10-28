@@ -12,6 +12,7 @@ Usage:
     registry_check.py hash   [--root DIR] PATH ...
     registry_check.py history  [--registry PATH] [--root DIR] [--markdown] ID
     registry_check.py baseline [--registry PATH] [--root DIR] [--markdown] [--ref REF]
+    registry_check.py relations [--registry PATH] [--root DIR] [--markdown] [--of ID]
 
 check   Every entry's path exists, its type is declared, ids are unique, and
         the file content matches the recorded sha256. With --base REF (for
@@ -33,6 +34,17 @@ baseline
         entry's revision, status and hash, and whether the file content at REF
         still matches the recorded hash. Meant to be archived with a release
         tag as the controlled baseline. Read-only.
+relations
+        Check the relation fields between entries (depends_on, refines,
+        verifies, supersedes; each an id or a list of ids). FAIL: a malformed
+        value, a target id that is not in the registry, a self reference, a
+        supersedes cycle, an undeclared layer. WARN only (exit status stays 0):
+        a depends_on or refines cycle, and a depends_on edge that the source
+        layer's `may_depend_on` list in the top-level `layers` does not allow.
+        An entry's layer is its own `layer`, else its type's `layer`; without
+        `layers` no direction check is made. With --of ID, list what that entry
+        points to and what points to it (change impact). Works with or without
+        `integrity`. Read-only.
 
 Hashing: Git LFS pointer files contribute their recorded `oid sha256:`; files
 tracked by LFS or containing NUL bytes are hashed as raw bytes (matching the
@@ -58,7 +70,7 @@ import re
 import subprocess
 import sys
 
-TOOL_VERSION = "1.1"
+TOOL_VERSION = "1.2"
 DEFAULT_REGISTRY = "docs/engineering-artifacts.yaml"
 FROZEN = {"superseded", "archived"}
 LFS_POINTER = re.compile(rb"^version https://git-lfs\.github\.com/spec/v1\n(?:.*\n)*?oid sha256:([0-9a-f]{64})\n", re.M)
@@ -525,6 +537,119 @@ def cmd_baseline(args):
     return 1 if mismatched else 0
 
 
+# ------------------------------------------------------------------ relations
+
+RELATIONS = ("depends_on", "refines", "verifies", "supersedes")
+REL_NAME = {"depends_on": "依赖", "refines": "细化", "verifies": "验证", "supersedes": "取代"}
+
+
+def find_cycle(edges):
+    """Return one cycle in `edges` (id -> [id]) as a list of ids, or None. Iterative: no recursion limit."""
+    state = {}
+    for start in sorted(edges):
+        if start in state:
+            continue
+        state[start] = 1
+        path, todo = [start], [iter(edges.get(start, []))]
+        while todo:
+            m = next(todo[-1], None)
+            if m is None:
+                state[path.pop()] = 2
+                todo.pop()
+            elif state.get(m) == 1:
+                return path[path.index(m):] + [m]
+            elif m not in state:
+                state[m] = 1
+                path.append(m)
+                todo.append(iter(edges.get(m, [])))
+    return None
+
+
+def cmd_relations(args):
+    _, data = read_registry(args.root, args.registry)
+    arts = [e for e in entries(data) if e.get("id")]
+    ids = {e["id"] for e in arts}
+    types = data.get("types") or {}
+    layers = data.get("layers") or {}
+    fails, warns = [], []
+    if not isinstance(layers, dict):
+        die("layers 必须是以层名为键的映射")
+
+    def layer_of(e):
+        own = e.get("layer")
+        t = types.get(e.get("type"))
+        return own if own else (t.get("layer") if isinstance(t, dict) else None)
+
+    for name, spec in layers.items():
+        allowed = (spec or {}).get("may_depend_on") if isinstance(spec, dict) else None
+        for target in allowed or []:
+            if target not in layers:
+                fails.append(f"layers.{name}: may_depend_on 中的层 `{target}` 未在 layers 中声明")
+    edges = {r: {} for r in RELATIONS}
+    for e in arts:
+        aid = e["id"]
+        lay = layer_of(e)
+        if layers and lay is not None and lay not in layers:
+            fails.append(f"{aid}: 层 `{lay}` 未在 layers 中声明")
+        for r in RELATIONS:
+            v = e.get(r)
+            if v is None:
+                continue
+            targets = [v] if isinstance(v, str) else v
+            if not isinstance(targets, list) or not all(isinstance(t, str) and t for t in targets):
+                fails.append(f"{aid}: {r} 应为编号或编号列表")
+                continue
+            for t in targets:
+                if t == aid:
+                    fails.append(f"{aid}: {r} 指向自己")
+                elif t not in ids:
+                    fails.append(f"{aid}: {r} 指向的编号 `{t}` 不在登记表中")
+                else:
+                    edges[r].setdefault(aid, []).append(t)
+    for r, level in (("supersedes", fails), ("depends_on", warns), ("refines", warns)):
+        cyc = find_cycle(edges[r])
+        if cyc:
+            level.append(f"{r} 成环：{' → '.join(cyc)}")
+    if layers:
+        by_id = {e["id"]: e for e in arts}
+        for src, targets in sorted(edges["depends_on"].items()):
+            ls = layer_of(by_id[src])
+            spec = layers.get(ls) if ls else None
+            allowed = spec.get("may_depend_on") if isinstance(spec, dict) else None
+            if allowed is None:
+                continue
+            for t in targets:
+                lt = layer_of(by_id[t])
+                if lt is not None and lt not in allowed:
+                    warns.append(f"{src}（{ls}）depends_on {t}（{lt}）：{ls} 层只应依赖 "
+                                 f"{', '.join(allowed) or '（无）'}；跨模块的合计与取舍应放在联合文档")
+    if args.of:
+        if args.of not in ids:
+            die(f"登记表中没有 id `{args.of}`")
+        out = [(REL_NAME[r], t) for r in RELATIONS for t in edges[r].get(args.of, [])]
+        inc = [(REL_NAME[r], s) for r in RELATIONS for s, ts in sorted(edges[r].items()) if args.of in ts]
+        if args.markdown:
+            print(f"### {args.of} 的关系\n")
+            print("| 方向 | 关系 | 编号 |")
+            print("| --- | --- | --- |")
+            for rel, t in out:
+                print(f"| 指向 | {rel} | {cell(t)} |")
+            for rel, s_ in inc:
+                print(f"| 被指向 | {rel} | {cell(s_)} |")
+        else:
+            print(f"{args.of} 指向：" + ("；".join(f"{rel} {t}" for rel, t in out) or "无"))
+            print(f"指向 {args.of}：" + ("；".join(f"{s_} {rel}" for rel, s_ in inc) or "无"))
+            print("改动它时，检查“指向它”的条目是否需要同步。")
+    for p in fails:
+        print(f"FAIL {p}")
+    for w in warns:
+        print(f"WARN {w}")
+    n_edges = sum(len(ts) for r in RELATIONS for ts in edges[r].values())
+    print(f"{args.registry}: {len(arts)} 个条目，{n_edges} 条关系，{len(fails)} 个问题，{len(warns)} 个提醒 —— "
+          f"{'未通过' if fails else '通过'}")
+    return 1 if fails else 0
+
+
 def cmd_hash(args):
     for rel in args.paths:
         print(f"{file_hash(args.root, rel)}  {rel}")
@@ -540,15 +665,17 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--version", action="version", version=f"registry_check {TOOL_VERSION}")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("check", "update", "hash", "history", "baseline"):
+    for name in ("check", "update", "hash", "history", "baseline", "relations"):
         p = sub.add_parser(name)
         p.add_argument("--root", default=".", help="项目根目录（默认当前目录）")
-        if name in ("history", "baseline"):
+        if name in ("history", "baseline", "relations"):
             p.add_argument("--markdown", action="store_true", help="输出 Markdown 表格")
         if name == "history":
             p.add_argument("id")
         if name == "baseline":
             p.add_argument("--ref", help="提交、分支或标签，如 v0.2.0；默认读取工作区")
+        if name == "relations":
+            p.add_argument("--of", help="列出该编号指向的条目和指向它的条目")
         if name != "hash":
             p.add_argument("--registry", default=DEFAULT_REGISTRY, help=f"登记表路径（默认 {DEFAULT_REGISTRY}）")
         if name == "check":
@@ -562,7 +689,7 @@ def main():
     args = ap.parse_args()
     args.root = os.path.abspath(args.root)
     return {"check": cmd_check, "update": cmd_update, "hash": cmd_hash,
-            "history": cmd_history, "baseline": cmd_baseline}[args.cmd](args)
+            "history": cmd_history, "baseline": cmd_baseline, "relations": cmd_relations}[args.cmd](args)
 
 
 if __name__ == "__main__":
