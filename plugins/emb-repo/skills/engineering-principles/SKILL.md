@@ -14,6 +14,7 @@ allowed-tools: Read Glob Grep
 - [核心原则（会话注入的唯一来源）](references/core-principles.md)
 - [知识类型、文档主线和 ADR 判断](references/knowledge-and-decisions.md)
 - [冲突、证据、变更和交接](references/consistency-and-handoff.md)
+- [文档边界：模块只写自己、README 自包含](references/document-boundaries.md)
 
 ## 输入与产出
 
@@ -50,8 +51,9 @@ allowed-tools: Read Glob Grep
 1. 给出当前有效的依据入口、负责模块/构建 Target、关联验证；区分事实、推断、尚缺证据。
 2. 将协议已批准、代码已实现、测试已通过、实板已验收分别描述，**不得互相冒充**。适用时沿用 `emb-project:issue-tracking` 的 L0–L4 证据等级并标明板卡/固件版本。
 3. 给出可独立操作的下一步，而不是要求新人从头阅读所有讨论或让 AI 重新推断整条工程历史。
-4. 创建、迁移或修订工程文件且涉及受管理类型时，按 `/emb-repo:artifact-conventions` 判断登记与生命周期；普通源码和临时文件不增加纳管要求。
-5. 需要执行具体管理操作时，使用专业 Skill：`/emb-design:adr-write` 负责 ADR（含人的确认），`/emb-project:issue-tracking` 负责 Issue 与验收，其他协议/测试能力按项目所安装的 Skill 选择。不要声称某个未安装或规划中的 Skill 已可用。
+4. 编写或拆分设计文档、README 时，按 [document-boundaries.md](references/document-boundaries.md) 判断内容归属：模块文档只写本模块，合计、优先级、因别人而定的参数和联合验证上移到联合文档；`docs/` 以外的 README 在本目录内自包含。
+5. 创建、迁移或修订工程文件且涉及受管理类型时，按 `/emb-repo:artifact-conventions` 判断登记与生命周期；普通源码和临时文件不增加纳管要求。
+6. 需要执行具体管理操作时，使用专业 Skill：`/emb-design:adr-write` 负责 ADR（含人的确认），`/emb-project:issue-tracking` 负责 Issue 与验收，其他协议/测试能力按项目所安装的 Skill 选择。不要声称某个未安装或规划中的 Skill 已可用。
 
 ### 5. 自检和回复
 

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: module-doc-boundary
+description: 三份模块文档各自重算同一组链路合计并互相矛盾，音频的参数被显示牵着走；应建议模块只写自己、合计与优先级上移到联合文档，并如实指出矛盾而不擅自选值。
+tags: [engineering-principles, positive, scaffold]
+context:
+  scaffold_script: setup.sh

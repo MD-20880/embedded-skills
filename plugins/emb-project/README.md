@@ -9,12 +9,14 @@
 - 做 open issue 清单、验证矩阵、项目总览
 - EVT / DVT / PVT / MP 阶段评审：能不能进入下一阶段
 - 为项目建立 issue 模板、标签和管理规范
+- 把阶段目标拆给 AI agent 或同事执行，验收他们交付的 PR 和实板记录
 
 ## Skills
 
 | Skill | 调用方式 | 状态 | 作用 |
 | --- | --- | --- | --- |
 | [issue-tracking](skills/issue-tracking/SKILL.md) | `/emb-project:issue-tracking` | ✅ 已发布 | 四类 issue（问题、验证、缺陷、任务）的写法与关闭方式，证据等级 L0–L4，总览与阶段门禁检查 |
+| [agent-tasks](skills/agent-tasks/SKILL.md) | `/emb-project:agent-tasks` | ✅ 已发布 | 把阶段目标拆成交给 AI agent 或人执行的执行 issue（一个 issue 一个 PR、范围写成目录、开发与实板测试分开），并按清单验收 PR 与实板记录 |
 | risk-register | `/emb-project:risk-register` | 📝 规划中 | 项目风险登记与跟踪：概率、影响、触发条件、应对措施、复核节奏 |
 | status-report | `/emb-project:status-report` | 📝 规划中 | 从 issue 总览生成周报 / 阶段状态汇报 |
 | change-control | `/emb-project:change-control` | 📝 规划中 | 设计变更（ECN）管理：变更原因、影响范围、涉及的板与版本、验证要求 |
@@ -48,11 +50,12 @@ skill 提供 7 个工作流：新建、改写或迁移、判断能否关闭、�
 | --- | --- |
 | 验证项的判据、判定与关闭（“过没过”） | `emb-project:issue-tracking` |
 | 上板验证的过程记录（怎么测的、波形、日志） | `emb-bringup:validation-record`（规划中），记录链接到对应的验证 issue 作为证据 |
+| 把阶段拆成执行 issue、派给 agent 后验收交付 | `emb-project:agent-tasks`；执行 issue 的类型、证据等级与关闭沿用 issue-tracking |
 | 技术方案的取舍与决策记录 | `emb-design:adr-write`；对应的“问题”issue 以 ADR 作为答案，问题 issue 的“决策记录”链接 ADR |
 
 ## 依赖的项目画像章节
 
-1 项目概述（当前阶段）、2 硬件清单（板与硬件版本的标准命名）、8 文档约定（issue 管理映射文档的位置）。画像规范见 [profile-spec](../emb-repo/skills/project-profile/references/profile-spec.md)；项目中尚无画像时，先运行 `/emb-repo:project-profile`。
+1 项目概述（当前阶段）、2 硬件清单（板与硬件版本的标准命名）、8 文档约定（issue 管理映射文档、执行流程文档的位置）；agent-tasks 另读 4 构建与烧录、5 目录约定、7 测试与验证。画像规范见 [profile-spec](../emb-repo/skills/project-profile/references/profile-spec.md)；项目中尚无画像时，先运行 `/emb-repo:project-profile`。
 
 ## 安装
 
