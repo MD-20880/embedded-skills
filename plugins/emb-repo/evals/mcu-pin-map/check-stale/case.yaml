@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: mcu-pin-map-check-stale
+description: 引脚资料绑定旧网表，当前网表已变；只读检查必须报告 STALE，不刷新摘要或改正文。
+tags: [mcu-pin-map, positive, scaffold, read-only]
+context:
+  scaffold_script: setup.sh

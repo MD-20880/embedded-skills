@@ -19,8 +19,17 @@
 | repo-layout | `/emb-repo:repo-layout` | 📝 规划中 | 梳理或执行目录与构建约定：新增板、硬件版本、程序时的落位与改动清单 |
 | docs-index-sync | `/emb-repo:docs-index-sync` | 📝 规划中 | 检查并同步 README、文档索引与实际目录 |
 | release-notes | `/emb-repo:release-notes` | 📝 规划中 | 整理版本变更记录与发布说明 |
+| [mcu-pin-map](skills/mcu-pin-map/SKILL.md) | `/emb-repo:mcu-pin-map` | 🚧 开发中 | 将网表整理为单个 MCU 的引脚 Markdown，绑定实际来源 SHA-256；支持生成、更新和只读来源检查 |
 
-> 状态说明：✅ 已发布（含评测用例）；📝 规划中（名称与范围可能调整）。新增 skill 的流程见仓库根目录 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+> 状态说明：✅ 已发布（含评测用例）；🚧 开发中（实现和评测用例已加入，正式行为评测待运行）；📝 规划中（名称与范围可能调整）。新增 skill 的流程见仓库根目录 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+
+## 来源绑定的 MCU 引脚资料
+
+`/emb-repo:mcu-pin-map create|update|check` 从已导出的网表生成单个板卡版本、单个 MCU 的引脚速查文档，供驱动与 bring-up 工作按需读取。输入先捕获为临时快照，完整生成后同时写入正文及来源摘要；`check` 只读返回 CURRENT、STALE 或 UNVERIFIABLE，不提供“只刷新 SHA”来认可旧正文的操作。
+
+来源绑定不是硬件一致性验证：SHA 匹配不保证提取正确、不证明网表由当前原理图导出，也不证明实板接线。仅有 Git LFS 指针时不能声称已读取源文件。人工备注与自动提取事实分开，并在更新时保留。
+
+脚本仅使用 Python 标准库；在 Git 工作树捕获来源时调用 Git 查询 LFS 属性。每个输入固定记录摘要模式，后续校验不依赖 Git 是否可用。元数据采用 JSON 对象形式的 YAML frontmatter，不需要新增解析依赖。模板、字段和使用流程见 [mcu-pin-map](skills/mcu-pin-map/SKILL.md)。不修改项目画像、不新增 hook；通过 project-profile 的现有更新流程加入资料链接后，再在项目规则或消费者工作流中接入“使用前检查来源”。
 
 ## 默认原则自动加载
 

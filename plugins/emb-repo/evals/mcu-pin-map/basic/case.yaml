@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: mcu-pin-map-basic
+description: 从双 MCU 网表生成 U1 引脚资料，验证来源绑定、串联电阻边界和未知参数不被猜测。
+tags: [mcu-pin-map, positive, scaffold]
+context:
+  scaffold_script: setup.sh
